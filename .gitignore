@@ -3,3 +3,4 @@ dist/
 *.log
 serve.err
 amplify_outputs.json
+.amplify/
