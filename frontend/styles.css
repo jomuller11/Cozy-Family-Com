@@ -1851,9 +1851,12 @@ body:has(#calendario:target) .bottom-nav a[href="#calendario"] {
 .panel#calendario,
 .panel#historial,
 .panel#usuarios,
-.panel#perfil,
 .panel#cargar {
   display: block !important;
+}
+
+.panel#perfil {
+  display: grid !important;
 }
 
 #resultados.side-column {
