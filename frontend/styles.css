@@ -902,12 +902,50 @@ body:has(#resultados:target) #resultados {
   box-shadow: 0 8px 18px rgba(105, 82, 65, 0.12);
   font-family: "Baloo 2", cursive;
   font-weight: 800;
+  overflow: hidden;
 }
 
 .mascot-avatar.large {
   width: 82px;
   height: 82px;
   font-size: 1.35rem;
+}
+
+.mascot-avatar svg {
+  width: 90%;
+  height: 90%;
+}
+
+.pet-face {
+  fill: rgba(255, 255, 255, 0.86);
+  stroke: #47313f;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.pet-line {
+  fill: none;
+  stroke: #47313f;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.pet-blush {
+  fill: #ff9daf;
+  opacity: 0.78;
+}
+
+.pet-halo {
+  fill: rgba(255, 255, 255, 0.26);
+}
+
+.pet-belly {
+  fill: rgba(255, 255, 255, 0.42);
+  stroke: #47313f;
+  stroke-linecap: round;
+  stroke-width: 3;
 }
 
 .mascot-nubi {
@@ -941,6 +979,70 @@ body:has(#resultados:target) #resultados {
   color: var(--ink);
   background: var(--field);
   outline: none;
+}
+
+.month-view {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.month-weekdays,
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.month-weekdays span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.month-grid article {
+  display: grid;
+  align-content: start;
+  min-height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 9px;
+  background: var(--field);
+}
+
+.month-grid article.has-events {
+  background: color-mix(in srgb, var(--sun) 18%, var(--field));
+}
+
+.month-grid strong {
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.month-event {
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  margin-top: 4px;
+  padding: 4px 7px;
+  color: #47313f;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-event.examen {
+  background: var(--sun);
+}
+
+.month-event.gimnasia {
+  background: var(--rose);
+}
+
+.month-event.voley {
+  background: var(--sky);
 }
 
 .empty-state {

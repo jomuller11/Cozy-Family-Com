@@ -144,8 +144,42 @@ function MascotAvatar({ mascotId, size = "regular" }) {
   const mascot = getMascot(mascotId);
 
   return (
-    <span className={`mascot-avatar ${mascot.className} ${size}`}>
-      <span>{mascot.symbol}</span>
+    <span className={`mascot-avatar ${mascot.className} ${size}`} aria-label={mascot.name}>
+      <svg viewBox="0 0 80 80" aria-hidden="true">
+        {mascot.id === "soli" && (
+          <>
+            <circle className="pet-halo" cx="40" cy="40" r="30" />
+            <circle className="pet-face" cx="40" cy="40" r="23" />
+            <path className="pet-line" d="M28 36c3-3 7-3 10 0M42 36c3-3 7-3 10 0" />
+            <path className="pet-line" d="M33 48c4 4 10 4 14 0" />
+            <circle className="pet-blush" cx="25" cy="45" r="4" />
+            <circle className="pet-blush" cx="55" cy="45" r="4" />
+          </>
+        )}
+        {mascot.id === "luma" && (
+          <>
+            <path className="pet-face" d="M18 43c0-16 10-26 22-26s22 10 22 26c0 15-10 25-22 25S18 58 18 43Z" />
+            <path className="pet-line" d="M28 20 22 9M52 20l6-11M31 39h.1M49 39h.1M34 51c3 3 9 3 12 0" />
+            <circle className="pet-blush" cx="27" cy="47" r="4" />
+            <circle className="pet-blush" cx="53" cy="47" r="4" />
+          </>
+        )}
+        {mascot.id === "bubu" && (
+          <>
+            <path className="pet-face" d="M20 40c0-14 9-23 20-23s20 9 20 23v7c0 12-8 21-20 21S20 59 20 47v-7Z" />
+            <path className="pet-line" d="M27 24 20 15M53 24l7-9M31 39h.1M49 39h.1M34 52c4 2 8 2 12 0" />
+            <path className="pet-belly" d="M31 58c2-5 16-5 18 0" />
+          </>
+        )}
+        {mascot.id === "nubi" && (
+          <>
+            <path className="pet-face" d="M20 43c-8-1-13-7-13-15 0-9 8-16 17-14C29 5 43 6 48 16c10-2 21 5 21 16 0 10-8 18-19 18H24c-2 0-3 0-4-1Z" />
+            <path className="pet-line" d="M29 35h.1M48 35h.1M34 45c3 3 8 3 11 0" />
+            <circle className="pet-blush" cx="24" cy="41" r="4" />
+            <circle className="pet-blush" cx="54" cy="41" r="4" />
+          </>
+        )}
+      </svg>
     </span>
   );
 }
@@ -345,7 +379,17 @@ function ChatSection({ currentUser, messages, users, onSendMessage }) {
   );
 }
 
+function getDayNumber(dateText) {
+  const match = String(dateText).match(/\d{1,2}/);
+  return match ? Number(match[0]) : 1;
+}
+
 function CalendarSection({ records, users }) {
+  const [view, setView] = useState("week");
+  const weekRecords = records.filter((record) => getDayNumber(record.date) <= 7 || records.length <= 5);
+  const visibleRecords = view === "week" ? weekRecords : records;
+  const monthDays = Array.from({ length: 35 }, (_, index) => index + 1);
+
   return (
     <section id="calendario" className="panel">
       <div className="section-heading">
@@ -354,28 +398,55 @@ function CalendarSection({ records, users }) {
           <h2>Calendario familiar</h2>
         </div>
         <div className="segmented">
-          <button className="selected" type="button">
+          <button className={view === "week" ? "selected" : ""} type="button" onClick={() => setView("week")}>
             Semana
           </button>
-          <button type="button">Mes</button>
+          <button className={view === "month" ? "selected" : ""} type="button" onClick={() => setView("month")}>
+            Mes
+          </button>
         </div>
       </div>
 
-      <div className="timeline">
-        {records.map((item) => (
-          <article key={item.id}>
-            <time>{item.date}</time>
-            <div className={`event-marker ${item.type.toLowerCase()}`} />
-            <div>
-              <strong>{item.title}</strong>
-              <p>
-                {userDisplay(users, item.assignedTo)} - cargo {userDisplay(users, item.createdBy)} -{" "}
-                {item.detail}
-              </p>
-            </div>
-          </article>
-        ))}
-      </div>
+      {view === "week" ? (
+        <div className="timeline">
+          {visibleRecords.map((item) => (
+            <article key={item.id}>
+              <time>{item.date}</time>
+              <div className={`event-marker ${item.type.toLowerCase()}`} />
+              <div>
+                <strong>{item.title}</strong>
+                <p>
+                  {userDisplay(users, item.assignedTo)} - cargo {userDisplay(users, item.createdBy)} -{" "}
+                  {item.detail}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="month-view">
+          <div className="month-weekdays">
+            {["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"].map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+          <div className="month-grid">
+            {monthDays.map((day) => {
+              const dayRecords = records.filter((record) => getDayNumber(record.date) === day);
+              return (
+                <article className={dayRecords.length ? "has-events" : ""} key={day}>
+                  <strong>{day}</strong>
+                  {dayRecords.slice(0, 2).map((record) => (
+                    <span className={`month-event ${record.type.toLowerCase()}`} key={record.id}>
+                      {record.title}
+                    </span>
+                  ))}
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
