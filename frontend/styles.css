@@ -817,12 +817,14 @@ body:not(:has(:target)) #calendario,
 body:not(:has(:target)) #resultados,
 body:not(:has(:target)) #historial,
 body:not(:has(:target)) #usuarios,
+body:not(:has(:target)) #perfil,
 body:not(:has(:target)) #cargar,
 body:has(#inicio:target) #chat,
 body:has(#inicio:target) #calendario,
 body:has(#inicio:target) #resultados,
 body:has(#inicio:target) #historial,
 body:has(#inicio:target) #usuarios,
+body:has(#inicio:target) #perfil,
 body:has(#inicio:target) #cargar,
 body:has(#chat:target) #inicio,
 body:has(#chat:target) .today-panel,
@@ -830,6 +832,7 @@ body:has(#chat:target) #calendario,
 body:has(#chat:target) #resultados,
 body:has(#chat:target) #historial,
 body:has(#chat:target) #usuarios,
+body:has(#chat:target) #perfil,
 body:has(#chat:target) #cargar,
 body:has(#calendario:target) #inicio,
 body:has(#calendario:target) .today-panel,
@@ -837,6 +840,7 @@ body:has(#calendario:target) #chat,
 body:has(#calendario:target) #resultados,
 body:has(#calendario:target) #historial,
 body:has(#calendario:target) #usuarios,
+body:has(#calendario:target) #perfil,
 body:has(#calendario:target) #cargar,
 body:has(#resultados:target) #inicio,
 body:has(#resultados:target) .today-panel,
@@ -844,6 +848,7 @@ body:has(#resultados:target) #chat,
 body:has(#resultados:target) #calendario,
 body:has(#resultados:target) #historial,
 body:has(#resultados:target) #usuarios,
+body:has(#resultados:target) #perfil,
 body:has(#resultados:target) #cargar,
 body:has(#historial:target) #inicio,
 body:has(#historial:target) .today-panel,
@@ -851,6 +856,7 @@ body:has(#historial:target) #chat,
 body:has(#historial:target) #calendario,
 body:has(#historial:target) #resultados,
 body:has(#historial:target) #usuarios,
+body:has(#historial:target) #perfil,
 body:has(#historial:target) #cargar,
 body:has(#usuarios:target) #inicio,
 body:has(#usuarios:target) .today-panel,
@@ -858,14 +864,24 @@ body:has(#usuarios:target) #chat,
 body:has(#usuarios:target) #calendario,
 body:has(#usuarios:target) #resultados,
 body:has(#usuarios:target) #historial,
+body:has(#usuarios:target) #perfil,
 body:has(#usuarios:target) #cargar,
+body:has(#perfil:target) #inicio,
+body:has(#perfil:target) .today-panel,
+body:has(#perfil:target) #chat,
+body:has(#perfil:target) #calendario,
+body:has(#perfil:target) #resultados,
+body:has(#perfil:target) #historial,
+body:has(#perfil:target) #usuarios,
+body:has(#perfil:target) #cargar,
 body:has(#cargar:target) #inicio,
 body:has(#cargar:target) .today-panel,
 body:has(#cargar:target) #chat,
 body:has(#cargar:target) #calendario,
 body:has(#cargar:target) #resultados,
 body:has(#cargar:target) #historial,
-body:has(#cargar:target) #usuarios {
+body:has(#cargar:target) #usuarios,
+body:has(#cargar:target) #perfil {
   display: none;
 }
 
@@ -1012,6 +1028,71 @@ body:has(#resultados:target) #resultados {
 
 .users-panel {
   background: linear-gradient(145deg, var(--glass), color-mix(in srgb, var(--lavender) 18%, var(--glass)));
+}
+
+.profile-section {
+  display: grid !important;
+  gap: 18px;
+  background: linear-gradient(145deg, var(--glass), color-mix(in srgb, var(--sky) 14%, var(--glass)));
+}
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  border-radius: 22px;
+  padding: 16px;
+  background: var(--soft-panel);
+}
+
+.profile-hero p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.profile-form {
+  margin-top: 0;
+}
+
+.profile-data {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.profile-data article {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 13px;
+  background: var(--field);
+}
+
+.profile-data span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profile-data strong {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+}
+
+.profile-actions-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-actions-panel .ghost-button,
+.profile-actions-panel .danger-button {
+  width: 100%;
 }
 
 .users-layout {
@@ -1720,6 +1801,7 @@ body:has(#inicio:target) .bottom-nav a[href="#inicio"],
 body:has(#chat:target) .bottom-nav a[href="#chat"],
 body:has(#historial:target) .bottom-nav a[href="#historial"],
 body:has(#usuarios:target) .bottom-nav a[href="#usuarios"],
+body:has(#perfil:target) .bottom-nav a[href="#perfil"],
 body:has(#calendario:target) .bottom-nav a[href="#calendario"] {
   color: var(--ink);
   background: var(--warm-chip);
@@ -1767,6 +1849,7 @@ body:has(#calendario:target) .bottom-nav a[href="#calendario"] {
 .panel#calendario,
 .panel#historial,
 .panel#usuarios,
+.panel#perfil,
 .panel#cargar {
   display: block !important;
 }
@@ -1778,6 +1861,7 @@ body:has(#calendario:target) .bottom-nav a[href="#calendario"] {
 .entry-panel:target,
 .history-card:target,
 .users-panel:target,
+#perfil:target,
 #calendario:target,
 #chat:target {
   scroll-margin-top: 22px;
@@ -1924,6 +2008,15 @@ body[data-theme="dark"] .speech {
 
   .users-layout {
     grid-template-columns: 1fr;
+  }
+
+  .profile-hero,
+  .profile-data {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-hero {
+    justify-items: start;
   }
 
   .message-form {

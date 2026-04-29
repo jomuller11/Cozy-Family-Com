@@ -372,6 +372,12 @@ function NavIcon({ type }) {
         <path d="M8.2 13.4h.1M12 13.4h.1M15.8 13.4h.1M8.2 16.5h.1M12 16.5h.1" />
       </>
     ),
+    profile: (
+      <>
+        <path d="M12 12.4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+        <path d="M4.8 20c1.1-3.6 3.5-5.4 7.2-5.4s6.1 1.8 7.2 5.4" />
+      </>
+    ),
   };
 
   return (
@@ -1385,6 +1391,96 @@ function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin
   );
 }
 
+function ProfileSection({ currentUser, account, familyName, onUpdateProfile, onLogout }) {
+  const [form, setForm] = useState({
+    name: currentUser.name,
+    mascotId: currentUser.mascotId,
+  });
+
+  useEffect(() => {
+    setForm({
+      name: currentUser.name,
+      mascotId: currentUser.mascotId,
+    });
+  }, [currentUser]);
+
+  function updateField(event) {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (!form.name.trim()) return;
+    onUpdateProfile({
+      name: form.name.trim(),
+      mascotId: form.mascotId,
+    });
+  }
+
+  return (
+    <section id="perfil" className="panel profile-section">
+      <div className="profile-hero">
+        <MascotAvatar mascotId={form.mascotId} size="large" />
+        <div>
+          <p className="eyebrow">Perfil</p>
+          <h2>{currentUser.name}</h2>
+          <p>
+            {currentUser.role} - {familyName}
+          </p>
+        </div>
+      </div>
+
+      <form className="entry-form profile-form" onSubmit={handleSubmit}>
+        <label className="wide">
+          <span>Nombre</span>
+          <input name="name" type="text" value={form.name} onChange={updateField} />
+        </label>
+        <label className="wide">
+          <span>Avatar cozy</span>
+          <select name="mascotId" value={form.mascotId} onChange={updateField}>
+            {mascotOptions.map((mascot) => (
+              <option value={mascot.id} key={mascot.id}>
+                {mascot.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="primary-action wide" type="submit">
+          Guardar perfil
+        </button>
+      </form>
+
+      <div className="profile-data">
+        <article>
+          <span>Email</span>
+          <strong>{account?.email ?? "Sin email registrado"}</strong>
+        </article>
+        <article>
+          <span>Rol</span>
+          <strong>{currentUser.role}</strong>
+        </article>
+        <article>
+          <span>Estado</span>
+          <strong>{currentUser.status}</strong>
+        </article>
+        <article>
+          <span>Permisos</span>
+          <strong>{currentUser.isAdmin ? "Admin" : "Integrante"}</strong>
+        </article>
+      </div>
+
+      <div className="profile-actions-panel">
+        <a className="ghost-button" href="#usuarios">
+          Ver grupo familiar
+        </a>
+        <button className="danger-button" type="button" onClick={onLogout}>
+          Salir
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function BottomNav({ activeSection }) {
   return (
     <nav className="bottom-nav" aria-label="Navegacion principal">
@@ -1399,9 +1495,9 @@ function BottomNav({ activeSection }) {
       <a className="add-slot" href="#cargar" aria-label="Cargar nuevo dato">
         +
       </a>
-      <a className={activeSection === "usuarios" ? "active" : ""} href="#usuarios">
-        <NavIcon type="family" />
-        <span>Familia</span>
+      <a className={activeSection === "perfil" ? "active" : ""} href="#perfil">
+        <NavIcon type="profile" />
+        <span>Perfil</span>
       </a>
       <a className={activeSection === "calendario" ? "active" : ""} href="#calendario">
         <NavIcon type="calendar" />
@@ -1429,6 +1525,10 @@ export default function App() {
   const currentUser = useMemo(
     () => getUser(users, sessionUserId) ?? null,
     [sessionUserId, users],
+  );
+  const currentAccount = useMemo(
+    () => accounts.find((account) => account.userId === sessionUserId) ?? null,
+    [accounts, sessionUserId],
   );
 
   useEffect(() => {
@@ -1558,6 +1658,19 @@ export default function App() {
     );
   }
 
+  function handleUpdateProfile(profile) {
+    setUsers((current) =>
+      current.map((user) =>
+        user.id === currentUser.id
+          ? {
+              ...user,
+              ...profile,
+            }
+          : user,
+      ),
+    );
+  }
+
   function handleSaveRecord(record) {
     setRecords((current) => [record, ...current]);
     setMessages((current) => [
@@ -1619,9 +1732,6 @@ export default function App() {
             <div className="top-actions">
               <span className="soft-note">{currentUser.name}</span>
               <ThemeToggle theme={theme} onThemeChange={setTheme} />
-              <button className="ghost-button logout-button" type="button" onClick={handleLogout}>
-                Salir
-              </button>
             </div>
           </header>
 
@@ -1669,6 +1779,15 @@ export default function App() {
               onCreateInvite={handleCreateInvite}
               onFamilyNameChange={setFamilyName}
               onFamilyMascotChange={setFamilyMascotId}
+            />
+          )}
+          {activeSection === "perfil" && (
+            <ProfileSection
+              currentUser={currentUser}
+              account={currentAccount}
+              familyName={familyName}
+              onUpdateProfile={handleUpdateProfile}
+              onLogout={handleLogout}
             />
           )}
           {activeSection === "cargar" && (
