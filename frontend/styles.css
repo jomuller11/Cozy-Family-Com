@@ -879,6 +879,10 @@ body:has(#resultados:target) #resultados {
   font-weight: 900;
 }
 
+.logout-button {
+  order: -1;
+}
+
 .checkbox-row {
   display: flex !important;
   align-items: center;
@@ -1011,8 +1015,19 @@ body:has(#resultados:target) #resultados {
   background: var(--field);
 }
 
+.month-grid .empty-day {
+  opacity: 0.35;
+  background: transparent;
+}
+
 .month-grid article.has-events {
   background: color-mix(in srgb, var(--sun) 18%, var(--field));
+}
+
+.calendar-range {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .month-grid strong {
@@ -1493,8 +1508,21 @@ body[data-theme="dark"] .speech {
 
   .top-actions {
     align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr auto;
     width: 100%;
+  }
+
+  .top-actions .theme-toggle,
+  .top-actions .primary-action {
+    grid-column: 1 / -1;
+  }
+
+  .top-actions .logout-button {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    min-width: 88px;
   }
 
   .primary-action,

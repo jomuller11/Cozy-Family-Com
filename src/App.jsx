@@ -59,6 +59,7 @@ const initialRecords = [
     assignedTo: "luli",
     createdBy: "mama",
     date: "30 abr, 08:20",
+    dateISO: "2026-04-30T08:20",
     detail: "Aula 4",
     result: "Pendiente",
   },
@@ -69,6 +70,7 @@ const initialRecords = [
     assignedTo: "luli",
     createdBy: "luli",
     date: "03 may",
+    dateISO: "2026-05-03T10:00",
     detail: "Salto 8.80, viga 8.45, suelo 9.10 y barras 8.70",
     result: "Promedio 8.76",
   },
@@ -79,6 +81,7 @@ const initialRecords = [
     assignedTo: "sofi",
     createdBy: "papa",
     date: "06 may, 18:30",
+    dateISO: "2026-05-06T18:30",
     detail: "Sofi jugo el tercer set completo",
     result: "2 - 1",
   },
@@ -124,6 +127,33 @@ function normalizeUsers(savedUsers) {
   });
 }
 
+function normalizeRecords(savedRecords) {
+  return savedRecords.map((record) => {
+    const fallback = initialRecords.find((item) => item.id === record.id);
+    return {
+      ...record,
+      dateISO: record.dateISO ?? fallback?.dateISO ?? legacyDateToISO(record.date),
+    };
+  });
+}
+
+function legacyDateToISO(dateText) {
+  const text = String(dateText ?? "").toLowerCase();
+  const day = getDayNumber(text);
+  const monthMap = {
+    abr: 3,
+    abril: 3,
+    may: 4,
+    mayo: 4,
+  };
+  const monthKey = Object.keys(monthMap).find((key) => text.includes(key));
+  const month = monthKey ? monthMap[monthKey] : 3;
+  const timeMatch = text.match(/(\d{1,2}):(\d{2})/);
+  const hour = timeMatch ? Number(timeMatch[1]) : 10;
+  const minute = timeMatch ? Number(timeMatch[2]) : 0;
+  return toDateTimeLocalValue(new Date(2026, month, day, hour, minute));
+}
+
 function getMascot(mascotId) {
   return mascotOptions.find((mascot) => mascot.id === mascotId) ?? mascotOptions[0];
 }
@@ -138,6 +168,37 @@ function createInviteCode() {
 
 function userDisplay(users, userId) {
   return getUser(users, userId)?.name ?? "Sin asignar";
+}
+
+function toDateTimeLocalValue(date) {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+}
+
+function formatRecordDate(dateISO) {
+  const date = new Date(dateISO);
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getRecordDate(record) {
+  return new Date(record.dateISO);
+}
+
+function getWeekStart(date) {
+  const start = new Date(date);
+  const day = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 function MascotAvatar({ mascotId, size = "regular" }) {
@@ -386,9 +447,24 @@ function getDayNumber(dateText) {
 
 function CalendarSection({ records, users }) {
   const [view, setView] = useState("week");
-  const weekRecords = records.filter((record) => getDayNumber(record.date) <= 7 || records.length <= 5);
-  const visibleRecords = view === "week" ? weekRecords : records;
-  const monthDays = Array.from({ length: 35 }, (_, index) => index + 1);
+  const sortedRecords = [...records].sort((a, b) => getRecordDate(a) - getRecordDate(b));
+  const anchorDate = sortedRecords[0] ? getRecordDate(sortedRecords[0]) : new Date();
+  const weekStart = getWeekStart(anchorDate);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  const weekRecords = sortedRecords.filter((record) => {
+    const date = getRecordDate(record);
+    return date >= weekStart && date < weekEnd;
+  });
+  const visibleRecords = view === "week" ? weekRecords : sortedRecords;
+  const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+  const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
+  const firstOffset = (monthStart.getDay() + 6) % 7;
+  const monthCells = [
+    ...Array.from({ length: firstOffset }, () => null),
+    ...Array.from({ length: monthEnd.getDate() }, (_, index) => new Date(anchorDate.getFullYear(), anchorDate.getMonth(), index + 1)),
+  ];
+  const monthLabel = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(anchorDate);
 
   return (
     <section id="calendario" className="panel">
@@ -396,6 +472,11 @@ function CalendarSection({ records, users }) {
         <div>
           <p className="eyebrow">Lo que se viene</p>
           <h2>Calendario familiar</h2>
+          <p className="calendar-range">
+            {view === "week"
+              ? `${formatRecordDate(weekStart)} - ${formatRecordDate(new Date(weekEnd.getTime() - 1))}`
+              : monthLabel}
+          </p>
         </div>
         <div className="segmented">
           <button className={view === "week" ? "selected" : ""} type="button" onClick={() => setView("week")}>
@@ -411,7 +492,7 @@ function CalendarSection({ records, users }) {
         <div className="timeline">
           {visibleRecords.map((item) => (
             <article key={item.id}>
-              <time>{item.date}</time>
+              <time>{formatRecordDate(item.dateISO)}</time>
               <div className={`event-marker ${item.type.toLowerCase()}`} />
               <div>
                 <strong>{item.title}</strong>
@@ -431,11 +512,14 @@ function CalendarSection({ records, users }) {
             ))}
           </div>
           <div className="month-grid">
-            {monthDays.map((day) => {
-              const dayRecords = records.filter((record) => getDayNumber(record.date) === day);
+            {monthCells.map((day, index) => {
+              if (!day) {
+                return <article className="empty-day" key={`empty-${index}`} aria-hidden="true" />;
+              }
+              const dayRecords = sortedRecords.filter((record) => isSameDay(getRecordDate(record), day));
               return (
-                <article className={dayRecords.length ? "has-events" : ""} key={day}>
-                  <strong>{day}</strong>
+                <article className={dayRecords.length ? "has-events" : ""} key={day.toISOString()}>
+                  <strong>{day.getDate()}</strong>
                   {dayRecords.slice(0, 2).map((record) => (
                     <span className={`month-event ${record.type.toLowerCase()}`} key={record.id}>
                       {record.title}
@@ -520,7 +604,7 @@ function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
   const [form, setForm] = useState({
     type: "Voley",
     assignedTo: assignableUsers[0]?.id ?? users[0]?.id,
-    date: "06 mayo, 18:30",
+    dateISO: "2026-05-06T18:30",
     title: "Club Norte vs San Martin",
     result: "2 - 1",
     detail: "Sofi jugo el tercer set completo",
@@ -534,6 +618,7 @@ function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
     return {
       id: crypto.randomUUID(),
       ...form,
+      date: formatRecordDate(form.dateISO),
       createdBy: currentUser.id,
       status,
     };
@@ -582,7 +667,7 @@ function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
         </label>
         <label>
           <span>Fecha</span>
-          <input name="date" type="text" value={form.date} onChange={updateField} />
+          <input name="dateISO" type="datetime-local" value={form.dateISO} onChange={updateField} />
         </label>
         <label>
           <span>Titulo</span>
@@ -609,11 +694,13 @@ function UsersSection({
   currentUser,
   selectedUserId,
   invitations,
+  familyName,
   onSelectUser,
   onCreateUser,
   onDeleteUser,
   onMakeAdmin,
   onCreateInvite,
+  onFamilyNameChange,
 }) {
   const [form, setForm] = useState({
     name: "",
@@ -629,6 +716,7 @@ function UsersSection({
     status: "Nueva",
     mascotId: "nubi",
   });
+  const [familyNameDraft, setFamilyNameDraft] = useState(familyName);
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
@@ -661,6 +749,13 @@ function UsersSection({
   function submitInvite(event) {
     event.preventDefault();
     onCreateInvite(inviteForm);
+  }
+
+  function submitFamilyName(event) {
+    event.preventDefault();
+    if (familyNameDraft.trim()) {
+      onFamilyNameChange(familyNameDraft.trim());
+    }
   }
 
   return (
@@ -766,6 +861,26 @@ function UsersSection({
         </form>
 
         {currentUserIsAdmin && (
+          <form className="entry-form invite-form" onSubmit={submitFamilyName}>
+            <div className="wide">
+              <p className="eyebrow">Grupo familiar</p>
+              <h2>Nombre del grupo</h2>
+            </div>
+            <label className="wide">
+              <span>Nombre</span>
+              <input
+                type="text"
+                value={familyNameDraft}
+                onChange={(event) => setFamilyNameDraft(event.target.value)}
+              />
+            </label>
+            <button className="primary-action wide" type="submit">
+              Guardar nombre
+            </button>
+          </form>
+        )}
+
+        {currentUserIsAdmin && (
           <form className="entry-form invite-form" onSubmit={submitInvite}>
             <div className="wide">
               <p className="eyebrow">Invitaciones</p>
@@ -813,7 +928,7 @@ function UsersSection({
   );
 }
 
-function AuthScreen({ accounts, invitations, onLogin, onRegister }) {
+function AuthScreen({ accounts, invitations, familyName, onLogin, onRegister }) {
   const [mode, setMode] = useState("login");
   const [message, setMessage] = useState("");
   const [loginForm, setLoginForm] = useState({
@@ -888,8 +1003,8 @@ function AuthScreen({ accounts, invitations, onLogin, onRegister }) {
         <div className="brand">
           <span className="brand-mark">CN</span>
           <div>
-            <p>Casa Nube</p>
-            <strong>Familia Arias</strong>
+            <p>Cozy Family Com</p>
+            <strong>{familyName}</strong>
           </div>
         </div>
 
@@ -976,11 +1091,12 @@ function BottomNav({ activeSection }) {
 export default function App() {
   const [activeSection, setActiveSection] = useState(() => window.location.hash.replace("#", "") || "inicio");
   const [theme, setTheme] = useState(() => window.localStorage.getItem("casa-nube-theme") || "light");
+  const [familyName, setFamilyName] = useState(() => window.localStorage.getItem("casa-nube-family-name") || "Familia Arias");
   const [users, setUsers] = useState(() => normalizeUsers(readStorage("casa-nube-users", initialUsers)));
   const [accounts, setAccounts] = useState(() => readStorage("casa-nube-accounts", initialAccounts));
   const [sessionUserId, setSessionUserId] = useState(() => window.localStorage.getItem("casa-nube-session-user"));
   const [invitations, setInvitations] = useState(() => readStorage("casa-nube-invitations", []));
-  const [records, setRecords] = useState(() => readStorage("casa-nube-records", initialRecords));
+  const [records, setRecords] = useState(() => normalizeRecords(readStorage("casa-nube-records", initialRecords)));
   const [messages, setMessages] = useState(() => readStorage("casa-nube-messages", initialMessages));
   const [drafts, setDrafts] = useState(() => readStorage("casa-nube-drafts", []));
   const [selectedUserId, setSelectedUserId] = useState(() => window.localStorage.getItem("casa-nube-selected-user") || "papa");
@@ -1010,6 +1126,10 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem("casa-nube-users", JSON.stringify(users));
   }, [users]);
+
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-family-name", familyName);
+  }, [familyName]);
 
   useEffect(() => {
     window.localStorage.setItem("casa-nube-accounts", JSON.stringify(accounts));
@@ -1134,6 +1254,7 @@ export default function App() {
       <AuthScreen
         accounts={accounts}
         invitations={invitations}
+        familyName={familyName}
         onLogin={handleLogin}
         onRegister={handleRegister}
       />
@@ -1148,19 +1269,19 @@ export default function App() {
             <div className="brand compact-brand">
               <span className="brand-mark">CN</span>
               <div>
-                <p>Casa Nube</p>
-                <strong>Familia Arias</strong>
+                <p>Cozy Family Com</p>
+                <strong>{familyName}</strong>
               </div>
             </div>
             <div className="top-actions">
               <span className="soft-note">{currentUser.name}</span>
               <ThemeToggle theme={theme} onThemeChange={setTheme} />
-              <button className="ghost-button" type="button" onClick={handleLogout}>
-                Salir
-              </button>
               <a className="primary-action" href="#usuarios">
                 Integrantes
               </a>
+              <button className="ghost-button logout-button" type="button" onClick={handleLogout}>
+                Salir
+              </button>
             </div>
           </header>
 
@@ -1189,11 +1310,13 @@ export default function App() {
               currentUser={currentUser}
               selectedUserId={selectedUserId}
               invitations={invitations}
+              familyName={familyName}
               onSelectUser={setSelectedUserId}
               onCreateUser={handleCreateUser}
               onDeleteUser={handleDeleteUser}
               onMakeAdmin={handleMakeAdmin}
               onCreateInvite={handleCreateInvite}
+              onFamilyNameChange={setFamilyName}
             />
           )}
           {activeSection === "cargar" && (
