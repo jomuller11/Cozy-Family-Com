@@ -1032,17 +1032,18 @@ body:has(#resultados:target) #resultados {
 
 .profile-section {
   display: grid !important;
-  gap: 18px;
+  gap: 12px;
+  padding: 12px;
   background: linear-gradient(145deg, var(--glass), color-mix(in srgb, var(--sky) 14%, var(--glass)));
 }
 
 .profile-hero {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   border-radius: 22px;
-  padding: 16px;
+  padding: 12px;
   background: var(--soft-panel);
 }
 
@@ -1053,20 +1054,21 @@ body:has(#resultados:target) #resultados {
 }
 
 .profile-form {
+  gap: 12px;
   margin-top: 0;
 }
 
 .profile-data {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .profile-data article {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 13px;
+  padding: 12px;
   background: var(--field);
 }
 
@@ -1087,7 +1089,7 @@ body:has(#resultados:target) #resultados {
 
 .profile-actions-panel {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .profile-actions-panel .ghost-button,
