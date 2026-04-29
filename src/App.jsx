@@ -306,10 +306,10 @@ function ThemeToggle({ theme, onThemeChange }) {
 
   return (
     <button className="theme-toggle" type="button" onClick={() => onThemeChange(nextTheme)}>
-      <span className="sun-icon" aria-hidden="true">
+      <span className={`sun-icon ${theme === "light" ? "active" : ""}`} aria-hidden="true">
         <SunIcon />
       </span>
-      <span className="moon-icon" aria-hidden="true">
+      <span className={`moon-icon ${theme === "dark" ? "active" : ""}`} aria-hidden="true">
         <MoonIcon />
       </span>
       <strong>{theme === "dark" ? "Noche" : "Dia"}</strong>
@@ -748,12 +748,14 @@ function UsersSection({
   selectedUserId,
   invitations,
   familyName,
+  familyMascotId,
   onSelectUser,
   onCreateUser,
   onDeleteUser,
   onMakeAdmin,
   onCreateInvite,
   onFamilyNameChange,
+  onFamilyMascotChange,
 }) {
   const [form, setForm] = useState({
     name: "",
@@ -770,6 +772,15 @@ function UsersSection({
     mascotId: "nubi",
   });
   const [familyNameDraft, setFamilyNameDraft] = useState(familyName);
+  const [familyMascotDraft, setFamilyMascotDraft] = useState(familyMascotId);
+
+  useEffect(() => {
+    setFamilyNameDraft(familyName);
+  }, [familyName]);
+
+  useEffect(() => {
+    setFamilyMascotDraft(familyMascotId);
+  }, [familyMascotId]);
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
@@ -809,6 +820,7 @@ function UsersSection({
     if (familyNameDraft.trim()) {
       onFamilyNameChange(familyNameDraft.trim());
     }
+    onFamilyMascotChange(familyMascotDraft);
   }
 
   return (
@@ -917,7 +929,7 @@ function UsersSection({
           <form className="entry-form invite-form" onSubmit={submitFamilyName}>
             <div className="wide">
               <p className="eyebrow">Grupo familiar</p>
-              <h2>Nombre del grupo</h2>
+              <h2>Nombre y mascota</h2>
             </div>
             <label className="wide">
               <span>Nombre</span>
@@ -927,8 +939,18 @@ function UsersSection({
                 onChange={(event) => setFamilyNameDraft(event.target.value)}
               />
             </label>
+            <label className="wide">
+              <span>Mascota del grupo</span>
+              <select value={familyMascotDraft} onChange={(event) => setFamilyMascotDraft(event.target.value)}>
+                {mascotOptions.map((mascot) => (
+                  <option value={mascot.id} key={mascot.id}>
+                    {mascot.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button className="primary-action wide" type="submit">
-              Guardar nombre
+              Guardar grupo
             </button>
           </form>
         )}
@@ -981,7 +1003,7 @@ function UsersSection({
   );
 }
 
-function AuthScreen({ accounts, invitations, familyName, onLogin, onRegister }) {
+function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin, onRegister }) {
   const [mode, setMode] = useState("login");
   const [message, setMessage] = useState("");
   const [loginForm, setLoginForm] = useState({
@@ -1054,7 +1076,7 @@ function AuthScreen({ accounts, invitations, familyName, onLogin, onRegister }) 
     <main className="auth-shell">
       <section className="panel auth-card">
         <div className="brand">
-          <span className="brand-mark">CN</span>
+          <MascotAvatar mascotId={familyMascotId} size="brand" />
           <div>
             <p>Cozy Family Com</p>
             <strong>{familyName}</strong>
@@ -1145,6 +1167,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState(() => window.location.hash.replace("#", "") || "inicio");
   const [theme, setTheme] = useState(() => window.localStorage.getItem("casa-nube-theme") || "light");
   const [familyName, setFamilyName] = useState(() => window.localStorage.getItem("casa-nube-family-name") || "Familia Arias");
+  const [familyMascotId, setFamilyMascotId] = useState(() => window.localStorage.getItem("casa-nube-family-mascot") || "nubi");
   const [users, setUsers] = useState(() => normalizeUsers(readStorage("casa-nube-users", initialUsers)));
   const [accounts, setAccounts] = useState(() => readStorage("casa-nube-accounts", initialAccounts));
   const [sessionUserId, setSessionUserId] = useState(() => window.localStorage.getItem("casa-nube-session-user"));
@@ -1183,6 +1206,10 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem("casa-nube-family-name", familyName);
   }, [familyName]);
+
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-family-mascot", familyMascotId);
+  }, [familyMascotId]);
 
   useEffect(() => {
     window.localStorage.setItem("casa-nube-accounts", JSON.stringify(accounts));
@@ -1308,6 +1335,7 @@ export default function App() {
         accounts={accounts}
         invitations={invitations}
         familyName={familyName}
+        familyMascotId={familyMascotId}
         onLogin={handleLogin}
         onRegister={handleRegister}
       />
@@ -1320,7 +1348,7 @@ export default function App() {
         <section className="workspace">
           <header className="topbar">
             <div className="brand compact-brand">
-              <span className="brand-mark">CN</span>
+              <MascotAvatar mascotId={familyMascotId} size="brand" />
               <div>
                 <p>Cozy Family Com</p>
                 <strong>{familyName}</strong>
@@ -1369,12 +1397,14 @@ export default function App() {
               selectedUserId={selectedUserId}
               invitations={invitations}
               familyName={familyName}
+              familyMascotId={familyMascotId}
               onSelectUser={setSelectedUserId}
               onCreateUser={handleCreateUser}
               onDeleteUser={handleDeleteUser}
               onMakeAdmin={handleMakeAdmin}
               onCreateInvite={handleCreateInvite}
               onFamilyNameChange={setFamilyName}
+              onFamilyMascotChange={setFamilyMascotId}
             />
           )}
           {activeSection === "cargar" && (
