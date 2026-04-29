@@ -42,6 +42,15 @@ const initialUsers = [
   },
 ];
 
+const initialAccounts = [
+  {
+    id: "papa",
+    email: "papa@casa.local",
+    password: "casa1234",
+    userId: "papa",
+  },
+];
+
 const initialRecords = [
   {
     id: "rec-1",
@@ -102,12 +111,29 @@ function readStorage(key, fallback) {
   }
 }
 
+function normalizeUsers(savedUsers) {
+  return savedUsers.map((user, index) => {
+    const fallbackUser = initialUsers.find((item) => item.id === user.id);
+    return {
+      ...user,
+      role: user.role ?? fallbackUser?.role ?? "Hija",
+      status: user.status ?? fallbackUser?.status ?? "Nueva",
+      mascotId: user.mascotId ?? fallbackUser?.mascotId ?? mascotOptions[index % mascotOptions.length].id,
+      isAdmin: user.isAdmin ?? user.id === "papa",
+    };
+  });
+}
+
 function getMascot(mascotId) {
   return mascotOptions.find((mascot) => mascot.id === mascotId) ?? mascotOptions[0];
 }
 
 function getUser(users, userId) {
   return users.find((user) => user.id === userId);
+}
+
+function createInviteCode() {
+  return Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
 }
 
 function userDisplay(users, userId) {
@@ -507,7 +533,17 @@ function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
   );
 }
 
-function UsersSection({ users, currentUser, selectedUserId, onSelectUser, onCreateUser, onDeleteUser, onMakeAdmin }) {
+function UsersSection({
+  users,
+  currentUser,
+  selectedUserId,
+  invitations,
+  onSelectUser,
+  onCreateUser,
+  onDeleteUser,
+  onMakeAdmin,
+  onCreateInvite,
+}) {
   const [form, setForm] = useState({
     name: "",
     role: "Hija",
@@ -517,6 +553,11 @@ function UsersSection({ users, currentUser, selectedUserId, onSelectUser, onCrea
   });
   const selectedUser = getUser(users, selectedUserId) ?? users[0];
   const currentUserIsAdmin = currentUser.isAdmin;
+  const [inviteForm, setInviteForm] = useState({
+    role: "Hija",
+    status: "Nueva",
+    mascotId: "nubi",
+  });
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
@@ -540,6 +581,15 @@ function UsersSection({ users, currentUser, selectedUserId, onSelectUser, onCrea
     });
 
     setForm({ name: "", role: "Hija", status: "Nueva", mascotId: "nubi", isAdmin: false });
+  }
+
+  function updateInvite(event) {
+    setInviteForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function submitInvite(event) {
+    event.preventDefault();
+    onCreateInvite(inviteForm);
   }
 
   return (
@@ -643,8 +693,186 @@ function UsersSection({ users, currentUser, selectedUserId, onSelectUser, onCrea
             Crear usuario
           </button>
         </form>
+
+        {currentUserIsAdmin && (
+          <form className="entry-form invite-form" onSubmit={submitInvite}>
+            <div className="wide">
+              <p className="eyebrow">Invitaciones</p>
+              <h2>Invitar al grupo</h2>
+            </div>
+            <label>
+              <span>Rol</span>
+              <select name="role" value={inviteForm.role} onChange={updateInvite}>
+                <option>Padre</option>
+                <option>Madre</option>
+                <option>Hija</option>
+              </select>
+            </label>
+            <label>
+              <span>Mascota sugerida</span>
+              <select name="mascotId" value={inviteForm.mascotId} onChange={updateInvite}>
+                {mascotOptions.map((mascot) => (
+                  <option value={mascot.id} key={mascot.id}>
+                    {mascot.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="wide">
+              <span>Estado inicial</span>
+              <input name="status" type="text" value={inviteForm.status} onChange={updateInvite} />
+            </label>
+            <button className="primary-action wide" type="submit">
+              Generar codigo
+            </button>
+            <div className="invite-list wide">
+              {invitations.map((invite) => (
+                <article key={invite.code}>
+                  <strong>{invite.code}</strong>
+                  <p>
+                    {invite.role} - {invite.memberStatus} - {invite.status === "open" ? "pendiente" : "usada"}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </form>
+        )}
       </div>
     </section>
+  );
+}
+
+function AuthScreen({ accounts, invitations, onLogin, onRegister }) {
+  const [mode, setMode] = useState("login");
+  const [message, setMessage] = useState("");
+  const [loginForm, setLoginForm] = useState({
+    email: "papa@casa.local",
+    password: "casa1234",
+  });
+  const [registerForm, setRegisterForm] = useState({
+    inviteCode: "",
+    name: "",
+    email: "",
+    password: "",
+  });
+
+  function updateLogin(event) {
+    setLoginForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function updateRegister(event) {
+    setRegisterForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function submitLogin(event) {
+    event.preventDefault();
+    const account = accounts.find(
+      (item) =>
+        item.email.toLowerCase() === loginForm.email.trim().toLowerCase() &&
+        item.password === loginForm.password,
+    );
+
+    if (!account) {
+      setMessage("No encontramos ese email y clave.");
+      return;
+    }
+
+    onLogin(account.userId);
+  }
+
+  function submitRegister(event) {
+    event.preventDefault();
+    const invite = invitations.find(
+      (item) =>
+        item.code.toUpperCase() === registerForm.inviteCode.trim().toUpperCase() &&
+        item.status === "open",
+    );
+
+    if (!invite) {
+      setMessage("El codigo de invitacion no existe o ya fue usado.");
+      return;
+    }
+
+    if (!registerForm.name.trim() || !registerForm.email.trim() || !registerForm.password.trim()) {
+      setMessage("Completa nombre, email y clave.");
+      return;
+    }
+
+    if (accounts.some((account) => account.email.toLowerCase() === registerForm.email.trim().toLowerCase())) {
+      setMessage("Ese email ya tiene cuenta.");
+      return;
+    }
+
+    onRegister({
+      invite,
+      name: registerForm.name.trim(),
+      email: registerForm.email.trim(),
+      password: registerForm.password,
+    });
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="panel auth-card">
+        <div className="brand">
+          <span className="brand-mark">CN</span>
+          <div>
+            <p>Casa Nube</p>
+            <strong>Familia Arias</strong>
+          </div>
+        </div>
+
+        <div className="auth-tabs">
+          <button className={mode === "login" ? "selected" : ""} type="button" onClick={() => setMode("login")}>
+            Ingresar
+          </button>
+          <button className={mode === "register" ? "selected" : ""} type="button" onClick={() => setMode("register")}>
+            Registrarse
+          </button>
+        </div>
+
+        {mode === "login" ? (
+          <form className="entry-form auth-form" onSubmit={submitLogin}>
+            <label className="wide">
+              <span>Email</span>
+              <input name="email" type="email" value={loginForm.email} onChange={updateLogin} />
+            </label>
+            <label className="wide">
+              <span>Clave</span>
+              <input name="password" type="password" value={loginForm.password} onChange={updateLogin} />
+            </label>
+            <button className="primary-action wide" type="submit">
+              Entrar
+            </button>
+            <p className="helper-copy">Acceso inicial de prueba: papa@casa.local / casa1234</p>
+          </form>
+        ) : (
+          <form className="entry-form auth-form" onSubmit={submitRegister}>
+            <label className="wide">
+              <span>Codigo de invitacion</span>
+              <input name="inviteCode" type="text" value={registerForm.inviteCode} onChange={updateRegister} />
+            </label>
+            <label>
+              <span>Nombre</span>
+              <input name="name" type="text" value={registerForm.name} onChange={updateRegister} />
+            </label>
+            <label>
+              <span>Email</span>
+              <input name="email" type="email" value={registerForm.email} onChange={updateRegister} />
+            </label>
+            <label className="wide">
+              <span>Clave</span>
+              <input name="password" type="password" value={registerForm.password} onChange={updateRegister} />
+            </label>
+            <button className="primary-action wide" type="submit">
+              Crear cuenta
+            </button>
+          </form>
+        )}
+
+        {message && <p className="form-message">{message}</p>}
+      </section>
+    </main>
   );
 }
 
@@ -677,14 +905,20 @@ function BottomNav({ activeSection }) {
 export default function App() {
   const [activeSection, setActiveSection] = useState(() => window.location.hash.replace("#", "") || "inicio");
   const [theme, setTheme] = useState(() => window.localStorage.getItem("casa-nube-theme") || "light");
-  const [users, setUsers] = useState(() => readStorage("casa-nube-users", initialUsers));
+  const [users, setUsers] = useState(() => normalizeUsers(readStorage("casa-nube-users", initialUsers)));
+  const [accounts, setAccounts] = useState(() => readStorage("casa-nube-accounts", initialAccounts));
+  const [sessionUserId, setSessionUserId] = useState(() => window.localStorage.getItem("casa-nube-session-user"));
+  const [invitations, setInvitations] = useState(() => readStorage("casa-nube-invitations", []));
   const [records, setRecords] = useState(() => readStorage("casa-nube-records", initialRecords));
   const [messages, setMessages] = useState(() => readStorage("casa-nube-messages", initialMessages));
   const [drafts, setDrafts] = useState(() => readStorage("casa-nube-drafts", []));
   const [selectedUserId, setSelectedUserId] = useState(() => window.localStorage.getItem("casa-nube-selected-user") || "papa");
   const [historyUserId, setHistoryUserId] = useState("luli");
 
-  const currentUser = useMemo(() => getUser(users, "papa") ?? users[0], [users]);
+  const currentUser = useMemo(
+    () => getUser(users, sessionUserId) ?? null,
+    [sessionUserId, users],
+  );
 
   useEffect(() => {
     function updateActiveSection() {
@@ -707,6 +941,22 @@ export default function App() {
   }, [users]);
 
   useEffect(() => {
+    window.localStorage.setItem("casa-nube-accounts", JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-invitations", JSON.stringify(invitations));
+  }, [invitations]);
+
+  useEffect(() => {
+    if (sessionUserId) {
+      window.localStorage.setItem("casa-nube-session-user", sessionUserId);
+    } else {
+      window.localStorage.removeItem("casa-nube-session-user");
+    }
+  }, [sessionUserId]);
+
+  useEffect(() => {
     window.localStorage.setItem("casa-nube-records", JSON.stringify(records));
   }, [records]);
 
@@ -725,6 +975,52 @@ export default function App() {
   function handleCreateUser(user) {
     setUsers((current) => [...current, user]);
     setSelectedUserId(user.id);
+  }
+
+  function handleLogin(userId) {
+    setSessionUserId(userId);
+    window.location.hash = "#inicio";
+  }
+
+  function handleLogout() {
+    setSessionUserId(null);
+  }
+
+  function handleRegister({ invite, name, email, password }) {
+    const user = {
+      id: crypto.randomUUID(),
+      name,
+      role: invite.role,
+      status: invite.memberStatus,
+      mascotId: invite.mascotId,
+      isAdmin: false,
+    };
+
+    setUsers((current) => [...current, user]);
+    setAccounts((current) => [...current, { id: crypto.randomUUID(), email, password, userId: user.id }]);
+    setInvitations((current) =>
+      current.map((item) =>
+        item.code === invite.code ? { ...item, status: "used", acceptedBy: user.id } : item,
+      ),
+    );
+    setSessionUserId(user.id);
+    setSelectedUserId(user.id);
+    window.location.hash = "#inicio";
+  }
+
+  function handleCreateInvite(inviteForm) {
+    setInvitations((current) => [
+      {
+        code: createInviteCode(),
+        role: inviteForm.role,
+        memberStatus: inviteForm.status,
+        mascotId: inviteForm.mascotId,
+        createdBy: currentUser.id,
+        createdAt: new Date().toISOString(),
+        status: "open",
+      },
+      ...current,
+    ]);
   }
 
   function handleDeleteUser(userId) {
@@ -762,6 +1058,17 @@ export default function App() {
     ]);
   }
 
+  if (!currentUser) {
+    return (
+      <AuthScreen
+        accounts={accounts}
+        invitations={invitations}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
+    );
+  }
+
   return (
     <>
       <main className="app-shell app-shell-single">
@@ -775,7 +1082,11 @@ export default function App() {
               </div>
             </div>
             <div className="top-actions">
+              <span className="soft-note">{currentUser.name}</span>
               <ThemeToggle theme={theme} onThemeChange={setTheme} />
+              <button className="ghost-button" type="button" onClick={handleLogout}>
+                Salir
+              </button>
               <a className="primary-action" href="#usuarios">
                 Integrantes
               </a>
@@ -806,10 +1117,12 @@ export default function App() {
               users={users}
               currentUser={currentUser}
               selectedUserId={selectedUserId}
+              invitations={invitations}
               onSelectUser={setSelectedUserId}
               onCreateUser={handleCreateUser}
               onDeleteUser={handleDeleteUser}
               onMakeAdmin={handleMakeAdmin}
+              onCreateInvite={handleCreateInvite}
             />
           )}
           {activeSection === "cargar" && (

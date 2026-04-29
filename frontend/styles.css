@@ -93,6 +93,58 @@ textarea {
   max-width: 980px;
 }
 
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 20px;
+}
+
+.auth-card {
+  display: grid;
+  width: min(520px, 100%);
+  gap: 20px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-radius: 18px;
+  padding: 5px;
+  background: var(--soft-panel);
+}
+
+.auth-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.auth-tabs .selected {
+  color: var(--ink);
+  background: var(--field);
+}
+
+.auth-form {
+  margin-top: 0;
+}
+
+.helper-copy,
+.form-message {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.form-message {
+  color: #8c3342;
+}
+
 .compact-brand {
   min-width: 220px;
 }
@@ -755,6 +807,28 @@ body:has(#resultados:target) #resultados {
 .user-form {
   align-content: start;
   margin-top: 0;
+}
+
+.invite-form {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.invite-list {
+  display: grid;
+  gap: 10px;
+}
+
+.invite-list article {
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: var(--field);
+}
+
+.invite-list p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .profile-panel {
