@@ -1,4 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  confirmSignUp,
+  fetchUserAttributes,
+  getCurrentUser,
+  signIn,
+  signOut,
+  signUp,
+} from "aws-amplify/auth";
 
 const mascotOptions = [
   { id: "nubi", name: "Nubi", symbol: "Nu", className: "mascot-nubi" },
@@ -172,6 +180,20 @@ function createInviteCode() {
 
 function userDisplay(users, userId) {
   return getUser(users, userId)?.name ?? "Sin asignar";
+}
+
+async function getAmplifyProfile(fallbackEmail = "") {
+  const [authUser, attributes] = await Promise.all([
+    getCurrentUser(),
+    fetchUserAttributes().catch(() => ({})),
+  ]);
+  const email = attributes.email ?? authUser.signInDetails?.loginId ?? fallbackEmail;
+
+  return {
+    authUserId: authUser.userId,
+    email,
+    name: attributes.name ?? email.split("@")[0] ?? "Nuevo integrante",
+  };
 }
 
 function toDateTimeLocalValue(date) {
@@ -1298,6 +1320,8 @@ function UsersSection({
 function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin, onRegister }) {
   const [mode, setMode] = useState("login");
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
   const [loginForm, setLoginForm] = useState({
     email: "papa@casa.local",
     password: "casa1234",
@@ -1308,6 +1332,7 @@ function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin
     email: "",
     password: "",
   });
+  const [confirmationCode, setConfirmationCode] = useState("");
 
   function updateLogin(event) {
     setLoginForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -1317,24 +1342,44 @@ function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin
     setRegisterForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   }
 
-  function submitLogin(event) {
+  async function submitLogin(event) {
     event.preventDefault();
-    const account = accounts.find(
-      (item) =>
-        item.email.toLowerCase() === loginForm.email.trim().toLowerCase() &&
-        item.password === loginForm.password,
-    );
+    setMessage("");
+    setIsSubmitting(true);
 
-    if (!account) {
-      setMessage("No encontramos ese email y clave.");
-      return;
+    try {
+      const result = await signIn({
+        username: loginForm.email.trim(),
+        password: loginForm.password,
+      });
+
+      if (result.nextStep.signInStep !== "DONE") {
+        setMessage("Tu cuenta necesita completar un paso adicional antes de entrar.");
+        return;
+      }
+
+      onLogin(await getAmplifyProfile(loginForm.email.trim()));
+    } catch {
+      const account = accounts.find(
+        (item) =>
+          item.email.toLowerCase() === loginForm.email.trim().toLowerCase() &&
+          item.password === loginForm.password,
+      );
+
+      if (!account) {
+        setMessage("No encontramos ese email y clave.");
+        return;
+      }
+
+      onLogin(account.userId);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onLogin(account.userId);
   }
 
-  function submitRegister(event) {
+  async function submitRegister(event) {
     event.preventDefault();
+    setMessage("");
     const invite = invitations.find(
       (item) =>
         item.code.toUpperCase() === registerForm.inviteCode.trim().toUpperCase() &&
@@ -1356,12 +1401,59 @@ function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin
       return;
     }
 
-    onRegister({
-      invite,
-      name: registerForm.name.trim(),
-      email: registerForm.email.trim(),
-      password: registerForm.password,
-    });
+    setIsSubmitting(true);
+
+    try {
+      await signUp({
+        username: registerForm.email.trim(),
+        password: registerForm.password,
+        options: {
+          userAttributes: {
+            email: registerForm.email.trim(),
+            name: registerForm.name.trim(),
+          },
+        },
+      });
+      setPendingRegistration({
+        invite,
+        name: registerForm.name.trim(),
+        email: registerForm.email.trim(),
+        password: registerForm.password,
+      });
+      setMessage("Te enviamos un codigo a tu email. Cargalo para confirmar la cuenta.");
+    } catch (error) {
+      setMessage(error.message || "No pudimos crear la cuenta en Auth.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function submitConfirmation(event) {
+    event.preventDefault();
+    if (!pendingRegistration || !confirmationCode.trim()) return;
+    setIsSubmitting(true);
+    setMessage("");
+
+    try {
+      await confirmSignUp({
+        username: pendingRegistration.email,
+        confirmationCode: confirmationCode.trim(),
+      });
+      await signIn({
+        username: pendingRegistration.email,
+        password: pendingRegistration.password,
+      });
+      const profile = await getAmplifyProfile(pendingRegistration.email);
+      onRegister({
+        ...pendingRegistration,
+        authUserId: profile.authUserId,
+        provider: "cognito",
+      });
+    } catch (error) {
+      setMessage(error.message || "No pudimos confirmar la cuenta.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -1394,10 +1486,20 @@ function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin
               <span>Clave</span>
               <input name="password" type="password" value={loginForm.password} onChange={updateLogin} />
             </label>
-            <button className="primary-action wide" type="submit">
-              Entrar
+            <button className="primary-action wide" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Entrando..." : "Entrar"}
             </button>
             <p className="helper-copy">Acceso inicial de prueba: papa@casa.local / casa1234</p>
+          </form>
+        ) : pendingRegistration ? (
+          <form className="entry-form auth-form" onSubmit={submitConfirmation}>
+            <label className="wide">
+              <span>Codigo de confirmacion</span>
+              <input value={confirmationCode} onChange={(event) => setConfirmationCode(event.target.value)} />
+            </label>
+            <button className="primary-action wide" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Confirmando..." : "Confirmar cuenta"}
+            </button>
           </form>
         ) : (
           <form className="entry-form auth-form" onSubmit={submitRegister}>
@@ -1417,8 +1519,8 @@ function AuthScreen({ accounts, invitations, familyName, familyMascotId, onLogin
               <span>Clave</span>
               <input name="password" type="password" value={registerForm.password} onChange={updateRegister} />
             </label>
-            <button className="primary-action wide" type="submit">
-              Crear cuenta
+            <button className="primary-action wide" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creando..." : "Crear cuenta"}
             </button>
           </form>
         )}
@@ -1570,6 +1672,21 @@ export default function App() {
   );
 
   useEffect(() => {
+    if (sessionUserId) return undefined;
+    let isMounted = true;
+
+    getAmplifyProfile()
+      .then((profile) => {
+        if (isMounted) handleAuthProfile(profile);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     function updateActiveSection() {
       setActiveSection(window.location.hash.replace("#", "") || "inicio");
     }
@@ -1634,18 +1751,70 @@ export default function App() {
     setSelectedUserId(user.id);
   }
 
-  function handleLogin(userId) {
+  function handleAuthProfile(profile) {
+    const existingAccount = accounts.find((account) => account.email.toLowerCase() === profile.email.toLowerCase());
+    const userId = existingAccount?.userId ?? profile.authUserId;
+
+    if (!getUser(users, userId)) {
+      setUsers((current) => [
+        ...current,
+        {
+          id: userId,
+          name: profile.name,
+          role: "Padre",
+          status: "Online",
+          mascotId: "nubi",
+          isAdmin: false,
+        },
+      ]);
+    }
+
+    setAccounts((current) => {
+      if (current.some((account) => account.email.toLowerCase() === profile.email.toLowerCase())) {
+        return current.map((account) =>
+          account.email.toLowerCase() === profile.email.toLowerCase()
+            ? { ...account, provider: "cognito", authUserId: profile.authUserId }
+            : account,
+        );
+      }
+
+      return [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          email: profile.email,
+          password: "",
+          provider: "cognito",
+          authUserId: profile.authUserId,
+          userId,
+        },
+      ];
+    });
+
     setSessionUserId(userId);
+    setSelectedUserId(userId);
     window.location.hash = "#inicio";
   }
 
-  function handleLogout() {
-    setSessionUserId(null);
+  function handleLogin(userOrProfile) {
+    if (typeof userOrProfile === "string") {
+      setSessionUserId(userOrProfile);
+      window.location.hash = "#inicio";
+      return;
+    }
+
+    handleAuthProfile(userOrProfile);
   }
 
-  function handleRegister({ invite, name, email, password }) {
+  async function handleLogout() {
+    await signOut().catch(() => {});
+    setSessionUserId(null);
+    window.location.hash = "#inicio";
+  }
+
+  function handleRegister({ invite, name, email, password, authUserId, provider }) {
     const user = {
-      id: crypto.randomUUID(),
+      id: authUserId ?? crypto.randomUUID(),
       name,
       role: invite.role,
       status: invite.memberStatus,
@@ -1654,7 +1823,17 @@ export default function App() {
     };
 
     setUsers((current) => [...current, user]);
-    setAccounts((current) => [...current, { id: crypto.randomUUID(), email, password, userId: user.id }]);
+    setAccounts((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        email,
+        password: provider === "cognito" ? "" : password,
+        provider: provider ?? "local",
+        authUserId,
+        userId: user.id,
+      },
+    ]);
     setInvitations((current) =>
       current.map((item) =>
         item.code === invite.code ? { ...item, status: "used", acceptedBy: user.id } : item,

@@ -1,4 +1,4 @@
-const CACHE_NAME = "casa-nube-v2";
+const CACHE_NAME = "casa-nube-v3";
 const APP_SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
