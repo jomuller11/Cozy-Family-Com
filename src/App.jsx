@@ -185,6 +185,33 @@ function formatRecordDate(dateISO) {
   }).format(date);
 }
 
+function formatShortDay(dateISO) {
+  return new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
+    day: "2-digit",
+  }).format(new Date(dateISO));
+}
+
+function formatShortMonth(dateISO) {
+  return new Intl.DateTimeFormat("es-AR", {
+    month: "short",
+  }).format(new Date(dateISO));
+}
+
+function formatRecordTime(dateISO) {
+  return new Intl.DateTimeFormat("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(dateISO));
+}
+
+function formatRangeDay(date) {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "short",
+  }).format(date);
+}
+
 function getRecordDate(record) {
   return new Date(record.dateISO);
 }
@@ -580,7 +607,7 @@ function CalendarSection({ records, users }) {
           <h2>Calendario familiar</h2>
           <p className="calendar-range">
             {view === "week"
-              ? `${formatRecordDate(weekStart)} - ${formatRecordDate(new Date(weekEnd.getTime() - 1))}`
+              ? `Semana del ${formatRangeDay(weekStart)} al ${formatRangeDay(new Date(weekEnd.getTime() - 1))}`
               : monthLabel}
           </p>
         </div>
@@ -597,10 +624,16 @@ function CalendarSection({ records, users }) {
       {view === "week" ? (
         <div className="timeline">
           {visibleRecords.map((item) => (
-            <article key={item.id}>
-              <time>{formatRecordDate(item.dateISO)}</time>
-              <div className={`event-marker ${item.type.toLowerCase()}`} />
+            <article className={`week-event ${item.type.toLowerCase()}`} key={item.id}>
+              <time className="week-date" dateTime={item.dateISO}>
+                <strong>{formatShortDay(item.dateISO)}</strong>
+                <span>{formatShortMonth(item.dateISO)}</span>
+              </time>
               <div>
+                <div className="week-event-top">
+                  <RecordTypeIcon type={item.type} />
+                  <span>{formatRecordTime(item.dateISO)}</span>
+                </div>
                 <strong>{getRecordTitle(item)}</strong>
                 <p>
                   {userDisplay(users, item.assignedTo)} - cargo {userDisplay(users, item.createdBy)} -{" "}

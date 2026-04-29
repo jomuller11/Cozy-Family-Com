@@ -332,17 +332,25 @@ h2 {
 
 .theme-toggle {
   display: grid;
-  grid-template-columns: 30px 30px;
+  grid-template-columns: 28px 28px;
   align-items: center;
-  min-height: 34px;
-  border: 1px solid var(--line);
+  width: 58px;
+  min-height: 32px;
+  border: 1px solid color-mix(in srgb, #dc8c19 76%, white);
   border-radius: 999px;
   padding: 2px;
   color: var(--muted);
-  background: color-mix(in srgb, var(--panel) 74%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 44%, transparent);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 18px rgba(112, 75, 30, 0.1);
   cursor: pointer;
   font-weight: 900;
+  outline: none;
+}
+
+.theme-toggle:focus-visible {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--sun) 34%, transparent),
+    0 8px 18px rgba(112, 75, 30, 0.1);
 }
 
 .theme-toggle strong {
@@ -356,8 +364,8 @@ h2 {
 .sun-icon,
 .moon-icon {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   place-items: center;
   border-radius: 999px;
   background: transparent;
@@ -370,8 +378,8 @@ h2 {
 
 .sun-icon svg,
 .moon-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -380,31 +388,48 @@ h2 {
 }
 
 .sun-icon {
-  color: #7d5b35;
+  color: #6b4822;
 }
 
 .moon-icon {
-  margin-left: -4px;
-  color: #8a8190;
+  margin-left: -2px;
+  color: #b9a883;
 }
 
 .sun-icon.active {
-  color: #5d3918;
-  background: var(--sun);
-  transform: scale(1.02);
+  color: #3d2815;
+  background: #ffc46e;
+  transform: scale(1);
 }
 
 .moon-icon.active {
-  color: #241d2d;
-  background: var(--lavender);
-  transform: scale(1.02);
+  color: #352436;
+  background: #ffc46e;
+  transform: scale(1);
 }
 
 body:has(#theme-toggle:checked) .theme-toggle,
 body[data-theme="dark"] .theme-toggle {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  border-color: transparent;
+  background: #242936;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+body:has(#theme-toggle:checked) .sun-icon,
+body[data-theme="dark"] .sun-icon {
+  color: #748094;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body:has(#theme-toggle:checked) .moon-icon,
+body[data-theme="dark"] .moon-icon {
+  color: #30243a;
+}
+
+body:has(#theme-toggle:checked) .sun-icon.active,
+body[data-theme="dark"] .sun-icon.active {
+  color: #3d2815;
+  background: #ffc46e;
 }
 
 .hero-panel {
@@ -948,6 +973,7 @@ body:has(#resultados:target) #resultados {
 
 .entry-form label {
   display: grid;
+  min-width: 0;
   gap: 7px;
   color: var(--muted);
   font-size: 0.82rem;
@@ -962,6 +988,8 @@ body:has(#resultados:target) #resultados {
 .entry-form select,
 .entry-form input,
 .entry-form textarea {
+  min-width: 0;
+  max-width: 100%;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -969,6 +997,12 @@ body:has(#resultados:target) #resultados {
   color: var(--ink);
   background: var(--field);
   outline: none;
+}
+
+.entry-form input[type="datetime-local"] {
+  appearance: none;
+  -webkit-appearance: none;
+  font-size: 0.94rem;
 }
 
 .rail-action {
@@ -1369,14 +1403,74 @@ body:has(#resultados:target) #resultados {
 
 .timeline article {
   display: grid;
-  grid-template-columns: 66px 18px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 12px;
+  background: var(--field);
 }
 
 .timeline time {
-  color: #8a6343;
+  color: var(--ink);
   font-weight: 900;
+}
+
+.week-date {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 72px;
+  border-radius: 16px;
+  color: #5a351d;
+  background: color-mix(in srgb, var(--sun) 42%, white);
+  text-align: center;
+}
+
+.week-date strong {
+  font-family: "Baloo 2", cursive;
+  font-size: 1.12rem;
+  line-height: 1;
+  text-transform: capitalize;
+}
+
+.week-date span {
+  margin-top: 2px;
+  color: #8a5b2a;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.week-event-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.week-event-top .record-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.week-event-top .record-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.week-event-top span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  color: var(--warm-ink);
+  background: var(--warm-chip);
+  font-size: 0.78rem;
+  font-weight: 1000;
 }
 
 .event-marker {
@@ -1412,7 +1506,15 @@ body:has(#resultados:target) #resultados {
 }
 
 .timeline p {
+  margin-top: 4px;
   color: var(--muted);
+  line-height: 1.35;
+}
+
+body[data-theme="dark"] .week-date,
+body:has(#theme-toggle:checked) .week-date {
+  color: #ffe7b3;
+  background: rgba(255, 196, 110, 0.16);
 }
 
 .result-card {
@@ -1803,7 +1905,8 @@ body[data-theme="dark"] .speech {
   }
 
   .timeline article {
-    grid-template-columns: 58px 16px minmax(0, 1fr);
+    grid-template-columns: 62px minmax(0, 1fr);
+    padding: 10px;
   }
 
   .today-list article {
