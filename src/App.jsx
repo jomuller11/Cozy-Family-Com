@@ -201,6 +201,59 @@ function isSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+function getRecordTitle(record) {
+  if (record.type === "Examen") {
+    return record.subject ? `Examen de ${record.subject}` : record.title || "Examen";
+  }
+
+  if (record.type === "Voley") {
+    return record.opponentClub ? `${record.homeAway || "Partido"} vs ${record.opponentClub}` : record.title || "Partido de voley";
+  }
+
+  if (record.type === "Gimnasia") {
+    return record.placeClub ? `Torneo en ${record.placeClub}` : record.title || "Torneo de gimnasia";
+  }
+
+  return record.title || "Actividad";
+}
+
+function getGymScoreSummary(record) {
+  const scores = [
+    ["Suelo", record.floorScore],
+    ["Viga", record.beamScore],
+    ["Paralelas", record.barsScore],
+    ["Salto", record.vaultScore],
+  ].filter(([, score]) => String(score ?? "").trim());
+
+  return scores.length ? scores.map(([label, score]) => `${label} ${score}`).join(", ") : "";
+}
+
+function getRecordResult(record) {
+  if (record.type === "Examen") return record.grade || record.result || "Pendiente";
+  if (record.type === "Gimnasia") return getGymScoreSummary(record) || record.result || "Pendiente";
+  return record.result || "Pendiente";
+}
+
+function getRecordDetail(record) {
+  if (record.type === "Examen") {
+    return record.subject ? `Materia: ${record.subject}` : record.detail;
+  }
+
+  if (record.type === "Voley") {
+    return [record.homeAway, record.address].filter(Boolean).join(" - ") || record.detail;
+  }
+
+  if (record.type === "Gimnasia") {
+    return [record.placeClub, record.address].filter(Boolean).join(" - ") || record.detail;
+  }
+
+  return record.detail;
+}
+
+function isPendingResult(record) {
+  return getRecordResult(record) === "Pendiente";
+}
+
 function MascotAvatar({ mascotId, size = "regular" }) {
   const mascot = getMascot(mascotId);
 
@@ -382,7 +435,7 @@ function HomeSection({ records, users, currentUser, messages, drafts }) {
     .sort((a, b) => getRecordDate(a) - getRecordDate(b))
     .filter((record) => getRecordDate(record) >= today)
     .slice(0, 3);
-  const pendingCount = records.filter((record) => record.result === "Pendiente").length;
+  const pendingCount = records.filter(isPendingResult).length;
   const unreadCount = Math.max(messages.length - 1, 0);
   const savedCount = drafts.length + pendingCount + 1;
 
@@ -407,7 +460,7 @@ function HomeSection({ records, users, currentUser, messages, drafts }) {
             <article className={`home-event ${item.type.toLowerCase()}`} key={item.id}>
               <RecordTypeIcon type={item.type} />
               <div>
-                <strong>{item.title}</strong>
+                <strong>{getRecordTitle(item)}</strong>
                 <p>
                   {formatRecordDate(item.dateISO)} - {userDisplay(users, item.assignedTo)}
                 </p>
@@ -548,10 +601,10 @@ function CalendarSection({ records, users }) {
               <time>{formatRecordDate(item.dateISO)}</time>
               <div className={`event-marker ${item.type.toLowerCase()}`} />
               <div>
-                <strong>{item.title}</strong>
+                <strong>{getRecordTitle(item)}</strong>
                 <p>
                   {userDisplay(users, item.assignedTo)} - cargo {userDisplay(users, item.createdBy)} -{" "}
-                  {item.detail}
+                  {getRecordDetail(item)}
                 </p>
               </div>
             </article>
@@ -575,7 +628,7 @@ function CalendarSection({ records, users }) {
                   <strong>{day.getDate()}</strong>
                   {dayRecords.slice(0, 2).map((record) => (
                     <span className={`month-event ${record.type.toLowerCase()}`} key={record.id}>
-                      {record.title}
+                      {getRecordTitle(record)}
                     </span>
                   ))}
                 </article>
@@ -588,10 +641,54 @@ function CalendarSection({ records, users }) {
   );
 }
 
-function HistorySection({ records, users, selectedUserId, onSelectUser }) {
+function HistorySection({ records, users, currentUser, selectedUserId, onSelectUser, onUpdateRecord }) {
   const childUsers = users.filter((user) => user.role === "Hija");
   const activeUserId = selectedUserId ?? childUsers[0]?.id ?? users[0]?.id;
   const userRecords = records.filter((record) => record.assignedTo === activeUserId);
+  const [editingId, setEditingId] = useState(null);
+  const [resultForm, setResultForm] = useState({
+    grade: "",
+    result: "",
+    floorScore: "",
+    beamScore: "",
+    barsScore: "",
+    vaultScore: "",
+  });
+
+  function startEditing(record) {
+    setEditingId(record.id);
+    setResultForm({
+      grade: record.grade || "",
+      result: record.result === "Pendiente" ? "" : record.result || "",
+      floorScore: record.floorScore || "",
+      beamScore: record.beamScore || "",
+      barsScore: record.barsScore || "",
+      vaultScore: record.vaultScore || "",
+    });
+  }
+
+  function updateResultField(event) {
+    setResultForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function saveResult(event, record) {
+    event.preventDefault();
+    const patch =
+      record.type === "Examen"
+        ? { grade: resultForm.grade.trim(), result: resultForm.grade.trim() || "Pendiente" }
+        : record.type === "Gimnasia"
+          ? {
+              floorScore: resultForm.floorScore.trim(),
+              beamScore: resultForm.beamScore.trim(),
+              barsScore: resultForm.barsScore.trim(),
+              vaultScore: resultForm.vaultScore.trim(),
+              result: "Pendiente",
+            }
+          : { result: resultForm.result.trim() || "Pendiente" };
+
+    onUpdateRecord(record.id, patch);
+    setEditingId(null);
+  }
 
   return (
     <section id="historial" className="panel history-card">
@@ -614,16 +711,63 @@ function HistorySection({ records, users, selectedUserId, onSelectUser }) {
         </div>
       </div>
       <div className="history-grid">
-        {userRecords.map((record) => (
+        {userRecords.map((record) => {
+          const canEditResult = currentUser.isAdmin || currentUser.id === record.assignedTo;
+          return (
           <article key={record.id}>
             <strong>
-              {record.type} - {record.title}
+              {record.type} - {getRecordTitle(record)}
             </strong>
             <p>
-              {record.result} - cargado por {userDisplay(users, record.createdBy)}
+              {getRecordResult(record)} - cargado por {userDisplay(users, record.createdBy)}
             </p>
+            {canEditResult && isPendingResult(record) && editingId !== record.id && (
+              <button className="ghost-button result-edit-button" type="button" onClick={() => startEditing(record)}>
+                Agregar resultado
+              </button>
+            )}
+            {editingId === record.id && (
+              <form className="result-edit-form" onSubmit={(event) => saveResult(event, record)}>
+                {record.type === "Examen" && (
+                  <label>
+                    <span>Nota</span>
+                    <input name="grade" value={resultForm.grade} onChange={updateResultField} />
+                  </label>
+                )}
+                {record.type === "Voley" && (
+                  <label>
+                    <span>Resultado</span>
+                    <input name="result" value={resultForm.result} onChange={updateResultField} placeholder="Ej: 2 - 1" />
+                  </label>
+                )}
+                {record.type === "Gimnasia" && (
+                  <>
+                    <label>
+                      <span>Suelo</span>
+                      <input name="floorScore" value={resultForm.floorScore} onChange={updateResultField} />
+                    </label>
+                    <label>
+                      <span>Viga</span>
+                      <input name="beamScore" value={resultForm.beamScore} onChange={updateResultField} />
+                    </label>
+                    <label>
+                      <span>Paralelas</span>
+                      <input name="barsScore" value={resultForm.barsScore} onChange={updateResultField} />
+                    </label>
+                    <label>
+                      <span>Salto</span>
+                      <input name="vaultScore" value={resultForm.vaultScore} onChange={updateResultField} />
+                    </label>
+                  </>
+                )}
+                <button className="primary-action" type="submit">
+                  Guardar resultado
+                </button>
+              </form>
+            )}
           </article>
-        ))}
+        );
+        })}
         {userRecords.length === 0 && <p className="empty-state">Todavia no hay registros.</p>}
       </div>
     </section>
@@ -631,20 +775,20 @@ function HistorySection({ records, users, selectedUserId, onSelectUser }) {
 }
 
 function ResultsSection({ records, users }) {
-  const doneRecords = records.filter((record) => record.result && record.result !== "Pendiente");
+  const doneRecords = records.filter((record) => !isPendingResult(record));
 
   return (
     <aside id="resultados" className="side-column">
       {doneRecords.map((record) => (
         <section className="panel result-card" key={record.id}>
           <p className="eyebrow">{record.type}</p>
-          <h2>{record.title}</h2>
+          <h2>{getRecordTitle(record)}</h2>
           <div className="score-row">
             <span>
               {userDisplay(users, record.assignedTo)}
               <small>cargo {userDisplay(users, record.createdBy)}</small>
             </span>
-            <strong>{record.result}</strong>
+            <strong>{getRecordResult(record)}</strong>
           </div>
         </section>
       ))}
@@ -655,12 +799,20 @@ function ResultsSection({ records, users }) {
 function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
   const assignableUsers = users.filter((user) => user.role === "Hija");
   const [form, setForm] = useState({
-    type: "Voley",
+    type: "Examen",
     assignedTo: assignableUsers[0]?.id ?? users[0]?.id,
+    subject: "Ciencias",
     dateISO: "2026-05-06T18:30",
-    title: "Club Norte vs San Martin",
-    result: "2 - 1",
-    detail: "Sofi jugo el tercer set completo",
+    grade: "",
+    homeAway: "Local",
+    opponentClub: "",
+    address: "",
+    result: "",
+    placeClub: "",
+    floorScore: "",
+    beamScore: "",
+    barsScore: "",
+    vaultScore: "",
   });
 
   function updateField(event) {
@@ -668,9 +820,21 @@ function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
   }
 
   function buildRecord(status = "saved") {
+    const result =
+      form.type === "Examen"
+        ? form.grade.trim() || "Pendiente"
+        : form.type === "Gimnasia"
+          ? [form.floorScore, form.beamScore, form.barsScore, form.vaultScore].some((value) => value.trim())
+            ? "Pendiente"
+            : "Pendiente"
+          : form.result.trim() || "Pendiente";
+
     return {
       id: crypto.randomUUID(),
       ...form,
+      title: getRecordTitle(form),
+      detail: getRecordDetail(form),
+      result,
       date: formatRecordDate(form.dateISO),
       createdBy: currentUser.id,
       status,
@@ -722,18 +886,69 @@ function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
           <span>Fecha</span>
           <input name="dateISO" type="datetime-local" value={form.dateISO} onChange={updateField} />
         </label>
-        <label>
-          <span>Titulo</span>
-          <input name="title" type="text" value={form.title} onChange={updateField} />
-        </label>
-        <label>
-          <span>Resultado</span>
-          <input name="result" type="text" value={form.result} onChange={updateField} />
-        </label>
-        <label className="wide">
-          <span>Detalle</span>
-          <textarea name="detail" value={form.detail} onChange={updateField} />
-        </label>
+        {form.type === "Examen" && (
+          <>
+            <label>
+              <span>Materia</span>
+              <input name="subject" type="text" value={form.subject} onChange={updateField} />
+            </label>
+            <label>
+              <span>Nota</span>
+              <input name="grade" type="text" value={form.grade} onChange={updateField} placeholder="Puede cargarse luego" />
+            </label>
+          </>
+        )}
+        {form.type === "Voley" && (
+          <>
+            <label>
+              <span>Local o visitante</span>
+              <select name="homeAway" value={form.homeAway} onChange={updateField}>
+                <option>Local</option>
+                <option>Visitante</option>
+              </select>
+            </label>
+            <label>
+              <span>Club rival</span>
+              <input name="opponentClub" type="text" value={form.opponentClub} onChange={updateField} />
+            </label>
+            <label className="wide">
+              <span>Direccion</span>
+              <input name="address" type="text" value={form.address} onChange={updateField} />
+            </label>
+            <label>
+              <span>Resultado</span>
+              <input name="result" type="text" value={form.result} onChange={updateField} placeholder="Puede cargarse luego" />
+            </label>
+          </>
+        )}
+        {form.type === "Gimnasia" && (
+          <>
+            <label>
+              <span>Lugar / Club</span>
+              <input name="placeClub" type="text" value={form.placeClub} onChange={updateField} />
+            </label>
+            <label className="wide">
+              <span>Direccion</span>
+              <input name="address" type="text" value={form.address} onChange={updateField} />
+            </label>
+            <label>
+              <span>Suelo</span>
+              <input name="floorScore" type="text" value={form.floorScore} onChange={updateField} placeholder="Luego" />
+            </label>
+            <label>
+              <span>Viga</span>
+              <input name="beamScore" type="text" value={form.beamScore} onChange={updateField} placeholder="Luego" />
+            </label>
+            <label>
+              <span>Paralelas</span>
+              <input name="barsScore" type="text" value={form.barsScore} onChange={updateField} placeholder="Luego" />
+            </label>
+            <label>
+              <span>Salto</span>
+              <input name="vaultScore" type="text" value={form.vaultScore} onChange={updateField} placeholder="Luego" />
+            </label>
+          </>
+        )}
         <button className="primary-action wide" type="submit">
           Guardar en historial
         </button>
@@ -1312,6 +1527,20 @@ export default function App() {
 
   function handleSaveRecord(record) {
     setRecords((current) => [record, ...current]);
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        authorId: currentUser.id,
+        text: `Nueva actividad asignada a ${userDisplay(users, record.assignedTo)}: ${getRecordTitle(record)}.`,
+      },
+    ]);
+  }
+
+  function handleUpdateRecord(recordId, patch) {
+    setRecords((current) =>
+      current.map((record) => (record.id === recordId ? { ...record, ...patch } : record)),
+    );
   }
 
   function handleSaveDraft(draft) {
@@ -1386,8 +1615,10 @@ export default function App() {
             <HistorySection
               records={records}
               users={users}
+              currentUser={currentUser}
               selectedUserId={historyUserId}
               onSelectUser={setHistoryUserId}
+              onUpdateRecord={handleUpdateRecord}
             />
           )}
           {activeSection === "usuarios" && (
