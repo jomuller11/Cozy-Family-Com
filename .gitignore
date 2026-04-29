@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.log
 serve.err
+amplify_outputs.json
