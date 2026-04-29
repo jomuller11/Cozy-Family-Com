@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Casa Nube - Familia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <input class="theme-input" id="theme-toggle" type="checkbox" aria-label="Activar tema oscuro" />
+    <main class="app-shell">
+      <aside class="family-rail" aria-label="Familia">
+        <div class="brand">
+          <span class="brand-mark">CN</span>
+          <div>
+            <p>Casa Nube</p>
+            <strong>Familia Arias</strong>
+          </div>
+        </div>
+
+        <section class="members" aria-label="Integrantes">
+          <article>
+            <span class="avatar dad">P</span>
+            <div>
+              <strong>Papa</strong>
+              <p>Online</p>
+            </div>
+          </article>
+          <article>
+            <span class="avatar mom">M</span>
+            <div>
+              <strong>Mama</strong>
+              <p>En camino</p>
+            </div>
+          </article>
+          <article>
+            <span class="avatar girl-a">L</span>
+            <div>
+              <strong>Luli</strong>
+              <p>Gimnasia</p>
+            </div>
+          </article>
+          <article>
+            <span class="avatar girl-b">S</span>
+            <div>
+              <strong>Sofi</strong>
+              <p>Voley</p>
+            </div>
+          </article>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Miercoles 29 de abril</p>
+            <h1>Hoy y lo que se viene</h1>
+          </div>
+          <div class="top-actions">
+            <label class="theme-toggle" for="theme-toggle">
+              <span class="sun-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M12 2.8v2.1M12 19.1v2.1M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2.8 12h2.1M19.1 12h2.1M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"></path>
+                </svg>
+              </span>
+              <span class="moon-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M18.4 15.8a7.2 7.2 0 0 1-10.2-10 7.8 7.8 0 1 0 10.2 10Z"></path>
+                </svg>
+              </span>
+              <strong>Tema</strong>
+            </label>
+            <a class="primary-action" href="#calendario">Ver calendario</a>
+          </div>
+        </header>
+
+        <section id="inicio" class="hero-panel">
+          <div class="hero-copy">
+            <p class="pill">Resumen familiar</p>
+            <h2>Hoy: entrega de mate, practica de voley y repaso de ciencias.</h2>
+            <p>
+              Nubi avisa lo importante, guarda resultados y deja mensajes cortitos para que nadie
+              tenga que buscar en tres chats distintos. Cada dato queda asignado a una hija y
+              muestra quien lo cargo.
+            </p>
+          </div>
+
+          <div class="mascot-scene" aria-label="Mascota Nubi animada">
+            <div class="sparkle one"></div>
+            <div class="sparkle two"></div>
+            <div class="nubi">
+              <div class="ear left"></div>
+              <div class="ear right"></div>
+              <div class="face">
+                <span class="eye left"></span>
+                <span class="eye right"></span>
+                <span class="mouth"></span>
+                <span class="blush left"></span>
+                <span class="blush right"></span>
+              </div>
+              <div class="paw left"></div>
+              <div class="paw right"></div>
+            </div>
+            <div class="speech">Tengo 3 recordatorios para hoy</div>
+          </div>
+        </section>
+
+        <section class="dashboard-grid">
+          <div class="main-column">
+            <section class="panel today-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Dia de hoy</p>
+                  <h2>Prioridades</h2>
+                </div>
+                <a class="ghost-button" href="#calendario">Ver todo</a>
+              </div>
+
+              <div class="today-list">
+                <article>
+                  <time>08:20</time>
+                  <div>
+                    <strong>Repaso final de ciencias</strong>
+                    <p>Asignado a Luli - cargado por Mama</p>
+                  </div>
+                </article>
+                <article>
+                  <time>17:30</time>
+                  <div>
+                    <strong>Practica de voley</strong>
+                    <p>Asignado a Sofi - cargado por Papa</p>
+                  </div>
+                </article>
+                <article>
+                  <time>20:00</time>
+                  <div>
+                    <strong>Preparar bolso de gimnasia</strong>
+                    <p>Asignado a Luli - cargado por Luli</p>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section id="chat" class="panel chat-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Comunicacion</p>
+                  <h2>Chat familiar</h2>
+                </div>
+                <button class="ghost-button" type="button">Enviar nota</button>
+              </div>
+
+              <div class="messages">
+                <article class="message mine">
+                  <span class="avatar mom">M</span>
+                  <div>
+                    <strong>Mama</strong>
+                    <p>Deje las medias de gimnasia en la mochila rosa.</p>
+                  </div>
+                </article>
+                <article class="message">
+                  <span class="avatar dad">P</span>
+                  <div>
+                    <strong>Papa</strong>
+                    <p>Yo busco a Sofi despues del partido. Avisen resultado.</p>
+                  </div>
+                </article>
+                <article class="message child">
+                  <span class="avatar girl-a">L</span>
+                  <div>
+                    <strong>Luli</strong>
+                    <p>Me saque 9 en historia. Lo cargue en examenes.</p>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section id="calendario" class="panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Lo que se viene</p>
+                  <h2>Calendario familiar</h2>
+                </div>
+                <div class="segmented">
+                  <button class="selected" type="button">Semana</button>
+                  <button type="button">Mes</button>
+                </div>
+              </div>
+
+              <div class="timeline">
+                <article>
+                  <time>30 abr</time>
+                  <div class="event-marker exam"></div>
+                  <div>
+                    <strong>Examen de ciencias</strong>
+                    <p>Asignado a Luli - cargo Mama - 08:20 - Aula 4</p>
+                  </div>
+                </article>
+                <article>
+                  <time>03 may</time>
+                  <div class="event-marker gym"></div>
+                  <div>
+                    <strong>Torneo de gimnasia</strong>
+                    <p>Asignado a Luli - cargo Luli - salto, viga, suelo y barras</p>
+                  </div>
+                </article>
+                <article>
+                  <time>06 may</time>
+                  <div class="event-marker volley"></div>
+                  <div>
+                    <strong>Partido de voley</strong>
+                    <p>Asignado a Sofi - cargo Papa - Club Norte vs San Martin</p>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <aside id="resultados" class="side-column">
+            <section class="panel result-card exams">
+              <p class="eyebrow">Colegio</p>
+              <h2>Examenes</h2>
+              <div class="score-row">
+                <span>Historia <small>Luli - cargo Luli</small></span>
+                <strong>9</strong>
+              </div>
+              <div class="score-row pending">
+                <span>Ciencias <small>Luli - cargo Mama</small></span>
+                <strong>Pendiente</strong>
+              </div>
+            </section>
+
+            <section class="panel result-card gym">
+              <p class="eyebrow">Gimnasia</p>
+              <h2>Torneo</h2>
+              <div class="apparatus">
+                <span>Salto <b>8.80</b><small>Luli</small></span>
+                <span>Viga <b>8.45</b><small>Luli</small></span>
+                <span>Suelo <b>9.10</b><small>Luli</small></span>
+                <span>Barras <b>8.70</b><small>Luli</small></span>
+              </div>
+            </section>
+
+            <section class="panel result-card volley">
+              <p class="eyebrow">Voley</p>
+              <h2>Ultimo partido</h2>
+              <div class="match-score">
+                <span>Club Norte</span>
+                <strong>2 - 1</strong>
+                <span>San Martin</span>
+              </div>
+              <p class="audit-line">Asignado a Sofi - cargado por Papa</p>
+            </section>
+          </aside>
+        </section>
+
+        <section id="historial" class="panel history-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Historial</p>
+              <h2>Por hija</h2>
+            </div>
+            <div class="child-tabs">
+              <button class="selected" type="button">Luli</button>
+              <button type="button">Sofi</button>
+            </div>
+          </div>
+          <div class="history-grid">
+            <article>
+              <strong>Gimnasia - Torneo apertura</strong>
+              <p>4 resultados asignados a Luli - ultimo cargado por Luli</p>
+            </article>
+            <article>
+              <strong>Colegio - Historia</strong>
+              <p>Nota 9 asignada a Luli - cargada por Luli</p>
+            </article>
+            <article>
+              <strong>Colegio - Ciencias</strong>
+              <p>Fecha asignada a Luli - cargada por Mama</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="cargar" class="panel entry-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Nuevo dato</p>
+              <h2>Cargar y asignar</h2>
+            </div>
+            <button class="ghost-button" type="button">Guardar borrador</button>
+          </div>
+
+          <form class="entry-form">
+            <label>
+              <span>Tipo</span>
+              <details class="custom-select">
+                <summary>Resultado de voley</summary>
+                <div class="select-menu">
+                  <button type="button">Fecha de examen</button>
+                  <button type="button">Resultado de examen</button>
+                  <button type="button">Torneo de gimnasia</button>
+                  <button type="button">Resultado de voley</button>
+                </div>
+              </details>
+            </label>
+            <label>
+              <span>Asignado a</span>
+              <details class="custom-select">
+                <summary>Sofi</summary>
+                <div class="select-menu">
+                  <button type="button">Luli</button>
+                  <button type="button">Sofi</button>
+                </div>
+              </details>
+            </label>
+            <label>
+              <span>Cargado por</span>
+              <details class="custom-select">
+                <summary>Papa</summary>
+                <div class="select-menu">
+                  <button type="button">Papa</button>
+                  <button type="button">Mama</button>
+                  <button type="button">Luli</button>
+                  <button type="button">Sofi</button>
+                </div>
+              </details>
+            </label>
+            <label>
+              <span>Fecha</span>
+              <input type="text" value="06 mayo, 18:30" />
+            </label>
+            <label class="wide">
+              <span>Detalle</span>
+              <textarea>Club Norte gano 2-1. Sofi jugo el tercer set completo.</textarea>
+            </label>
+            <button class="primary-action wide" type="button">Guardar en historial de Sofi</button>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegacion principal">
+      <a href="#inicio">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 11.2 12 4l8 7.2"></path>
+            <path d="M6.5 10.5v8.2h11v-8.2"></path>
+            <path d="M10 18.7v-5h4v5"></path>
+          </svg>
+        </span>
+        <span>Inicio</span>
+      </a>
+      <a href="#chat">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M5.2 6.2h13.6a2.2 2.2 0 0 1 2.2 2.2v5.8a2.2 2.2 0 0 1-2.2 2.2h-7.4l-4.5 3v-3H5.2A2.2 2.2 0 0 1 3 14.2V8.4a2.2 2.2 0 0 1 2.2-2.2Z"></path>
+            <path d="M8 10.2h8M8 13.1h5"></path>
+          </svg>
+        </span>
+        <span>Chat</span>
+      </a>
+      <a class="add-slot" href="#cargar" aria-label="Cargar nuevo dato">+</a>
+      <a href="#historial">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M7.2 5.8h9.6a2 2 0 0 1 2 2v10.4a1.2 1.2 0 0 1-1.8 1l-5-2.9-5 2.9a1.2 1.2 0 0 1-1.8-1V7.8a2 2 0 0 1 2-2Z"></path>
+            <path d="M9 10h6M9 13h4"></path>
+          </svg>
+        </span>
+        <span>Historial</span>
+      </a>
+      <a href="#calendario">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M6.4 5.8h11.2a2.4 2.4 0 0 1 2.4 2.4v9.4a2.4 2.4 0 0 1-2.4 2.4H6.4A2.4 2.4 0 0 1 4 17.6V8.2a2.4 2.4 0 0 1 2.4-2.4Z"></path>
+            <path d="M8 4v3.2M16 4v3.2M4.4 10h15.2"></path>
+            <path d="M8.2 13.4h.1M12 13.4h.1M15.8 13.4h.1M8.2 16.5h.1M12 16.5h.1"></path>
+          </svg>
+        </span>
+        <span>Agenda</span>
+      </a>
+    </nav>
+  </body>
+</html>
