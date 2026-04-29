@@ -340,50 +340,103 @@ function Mascot() {
   );
 }
 
-function HomeSection({ records, users }) {
-  const upcoming = records.slice(0, 3);
+function RecordTypeIcon({ type }) {
+  const iconType = type.toLowerCase();
 
   return (
-    <>
-      <section id="inicio" className="hero-panel">
-        <div className="hero-copy">
-          <p className="pill">Resumen familiar</p>
-          <h2>Hoy y lo que se viene en la familia.</h2>
-          <p>
-            Nubi avisa lo importante, guarda resultados y deja mensajes cortitos para que nadie
-            tenga que buscar en tres chats distintos.
-          </p>
-        </div>
-        <Mascot />
-      </section>
+    <span className={`record-icon ${iconType}`} aria-hidden="true">
+      {iconType === "examen" && (
+        <svg viewBox="0 0 24 24">
+          <path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" />
+          <path d="M8 8h8M8 12h8M8 16h5" />
+        </svg>
+      )}
+      {iconType === "gimnasia" && (
+        <svg viewBox="0 0 24 24">
+          <path d="M12 4v16M7 8c2 2 8 2 10 0M7 16c2-2 8-2 10 0" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      )}
+      {iconType === "voley" && (
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 4c2 3 2 13 0 16M5.5 8.5c4 .5 8.2 3 12 7M18.5 8.5c-4 .5-8.2 3-12 7" />
+        </svg>
+      )}
+    </span>
+  );
+}
 
-      <section className="panel today-panel">
-        <div className="section-heading">
+function formatHomeDay(date = new Date()) {
+  return new Intl.DateTimeFormat("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(date);
+}
+
+function HomeSection({ records, users, currentUser, messages, drafts }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcoming = [...records]
+    .sort((a, b) => getRecordDate(a) - getRecordDate(b))
+    .filter((record) => getRecordDate(record) >= today)
+    .slice(0, 3);
+  const pendingCount = records.filter((record) => record.result === "Pendiente").length;
+  const unreadCount = Math.max(messages.length - 1, 0);
+  const savedCount = drafts.length + pendingCount + 1;
+
+  return (
+    <section id="inicio" className="home-screen">
+      <div className="home-greeting">
+        <h1>Buen dia, {currentUser.name}!</h1>
+        <p>Esto es lo que se viene en casa hoy.</p>
+      </div>
+
+      <section className="today-card">
+        <div className="today-card-head">
           <div>
-            <p className="eyebrow">Dia de hoy</p>
-            <h2>Prioridades</h2>
+            <p className="date-chip">{formatHomeDay()}</p>
+            <h2>Hoy en la familia</h2>
           </div>
-          <a className="ghost-button" href="#calendario">
-            Ver todo
-          </a>
+          <span className="new-chip">{upcoming.length} nuevos</span>
         </div>
 
-        <div className="today-list">
+        <div className="home-event-list">
           {upcoming.map((item) => (
-            <article key={item.id}>
-              <time>{item.date}</time>
+            <article className={`home-event ${item.type.toLowerCase()}`} key={item.id}>
+              <RecordTypeIcon type={item.type} />
               <div>
                 <strong>{item.title}</strong>
                 <p>
-                  {item.type} - {userDisplay(users, item.assignedTo)} - cargado por{" "}
-                  {userDisplay(users, item.createdBy)}
+                  {formatRecordDate(item.dateISO)} - {userDisplay(users, item.assignedTo)}
                 </p>
               </div>
             </article>
           ))}
         </div>
       </section>
-    </>
+
+      <div className="home-stats">
+        <article>
+          <span className="stat-dot orange" />
+          <p>Pendientes</p>
+          <strong>{pendingCount}</strong>
+          <small>{pendingCount === 1 ? "1 es tuyo" : `${pendingCount} son tuyos`}</small>
+        </article>
+        <article>
+          <span className="stat-dot violet" />
+          <p>Chat</p>
+          <strong>{messages.length}</strong>
+          <small>{unreadCount} sin leer</small>
+        </article>
+      </div>
+
+      <section className="mascot-note">
+        <MascotAvatar mascotId={currentUser.mascotId} />
+        <p>Tengo {savedCount} cositas guardadas para revisar antes de dormir.</p>
+      </section>
+    </section>
   );
 }
 
@@ -1276,16 +1329,21 @@ export default function App() {
             <div className="top-actions">
               <span className="soft-note">{currentUser.name}</span>
               <ThemeToggle theme={theme} onThemeChange={setTheme} />
-              <a className="primary-action" href="#usuarios">
-                Integrantes
-              </a>
               <button className="ghost-button logout-button" type="button" onClick={handleLogout}>
                 Salir
               </button>
             </div>
           </header>
 
-          {activeSection === "inicio" && <HomeSection records={records} users={users} />}
+          {activeSection === "inicio" && (
+            <HomeSection
+              records={records}
+              users={users}
+              currentUser={currentUser}
+              messages={messages}
+              drafts={drafts}
+            />
+          )}
           {activeSection === "chat" && (
             <ChatSection
               currentUser={currentUser}
