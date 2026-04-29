@@ -1,73 +1,128 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const familyMembers = [
-  { id: "papa", name: "Papa", role: "Padre", status: "Online", avatar: "P", className: "dad" },
-  { id: "mama", name: "Mama", role: "Madre", status: "En camino", avatar: "M", className: "mom" },
-  { id: "luli", name: "Luli", role: "Hija", status: "Gimnasia", avatar: "L", className: "girl-a" },
-  { id: "sofi", name: "Sofi", role: "Hija", status: "Voley", avatar: "S", className: "girl-b" },
+const mascotOptions = [
+  { id: "nubi", name: "Nubi", symbol: "Nu", className: "mascot-nubi" },
+  { id: "soli", name: "Soli", symbol: "So", className: "mascot-soli" },
+  { id: "luma", name: "Luma", symbol: "Lu", className: "mascot-luma" },
+  { id: "bubu", name: "Bubu", symbol: "Bu", className: "mascot-bubu" },
 ];
 
-const todayItems = [
+const initialUsers = [
   {
-    time: "08:20",
-    title: "Repaso final de ciencias",
-    detail: "Asignado a Luli - cargado por Mama",
+    id: "papa",
+    name: "Papa",
+    role: "Padre",
+    status: "Online",
+    mascotId: "nubi",
+    isAdmin: true,
   },
   {
-    time: "17:30",
-    title: "Practica de voley",
-    detail: "Asignado a Sofi - cargado por Papa",
+    id: "mama",
+    name: "Mama",
+    role: "Madre",
+    status: "En camino",
+    mascotId: "soli",
+    isAdmin: false,
   },
   {
-    time: "20:00",
-    title: "Preparar bolso de gimnasia",
-    detail: "Asignado a Luli - cargado por Luli",
+    id: "luli",
+    name: "Luli",
+    role: "Hija",
+    status: "Gimnasia",
+    mascotId: "luma",
+    isAdmin: false,
+  },
+  {
+    id: "sofi",
+    name: "Sofi",
+    role: "Hija",
+    status: "Voley",
+    mascotId: "bubu",
+    isAdmin: false,
   },
 ];
 
-const calendarItems = [
+const initialRecords = [
   {
-    date: "30 abr",
-    marker: "exam",
+    id: "rec-1",
+    type: "Examen",
     title: "Examen de ciencias",
-    detail: "Asignado a Luli - cargo Mama - 08:20 - Aula 4",
+    assignedTo: "luli",
+    createdBy: "mama",
+    date: "30 abr, 08:20",
+    detail: "Aula 4",
+    result: "Pendiente",
   },
   {
+    id: "rec-2",
+    type: "Gimnasia",
+    title: "Torneo apertura",
+    assignedTo: "luli",
+    createdBy: "luli",
     date: "03 may",
-    marker: "gym",
-    title: "Torneo de gimnasia",
-    detail: "Asignado a Luli - cargo Luli - salto, viga, suelo y barras",
+    detail: "Salto 8.80, viga 8.45, suelo 9.10 y barras 8.70",
+    result: "Promedio 8.76",
   },
   {
-    date: "06 may",
-    marker: "volley",
-    title: "Partido de voley",
-    detail: "Asignado a Sofi - cargo Papa - Club Norte vs San Martin",
+    id: "rec-3",
+    type: "Voley",
+    title: "Club Norte vs San Martin",
+    assignedTo: "sofi",
+    createdBy: "papa",
+    date: "06 may, 18:30",
+    detail: "Sofi jugo el tercer set completo",
+    result: "2 - 1",
   },
 ];
 
-const messages = [
+const initialMessages = [
   {
-    author: "Mama",
-    avatar: "M",
-    className: "mom",
-    tone: "mine",
+    id: "msg-1",
+    authorId: "mama",
     text: "Deje las medias de gimnasia en la mochila rosa.",
   },
   {
-    author: "Papa",
-    avatar: "P",
-    className: "dad",
+    id: "msg-2",
+    authorId: "papa",
     text: "Yo busco a Sofi despues del partido. Avisen resultado.",
   },
   {
-    author: "Luli",
-    avatar: "L",
-    className: "girl-a",
-    tone: "child",
+    id: "msg-3",
+    authorId: "luli",
     text: "Me saque 9 en historia. Lo cargue en examenes.",
   },
 ];
+
+function readStorage(key, fallback) {
+  try {
+    const value = window.localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getMascot(mascotId) {
+  return mascotOptions.find((mascot) => mascot.id === mascotId) ?? mascotOptions[0];
+}
+
+function getUser(users, userId) {
+  return users.find((user) => user.id === userId);
+}
+
+function userDisplay(users, userId) {
+  return getUser(users, userId)?.name ?? "Sin asignar";
+}
+
+function MascotAvatar({ mascotId, size = "regular" }) {
+  const mascot = getMascot(mascotId);
+
+  return (
+    <span className={`mascot-avatar ${mascot.className} ${size}`}>
+      <span>{mascot.symbol}</span>
+    </span>
+  );
+}
 
 function SunIcon() {
   return (
@@ -101,10 +156,12 @@ function NavIcon({ type }) {
         <path d="M8 10.2h8M8 13.1h5" />
       </>
     ),
-    history: (
+    family: (
       <>
-        <path d="M7.2 5.8h9.6a2 2 0 0 1 2 2v10.4a1.2 1.2 0 0 1-1.8 1l-5-2.9-5 2.9a1.2 1.2 0 0 1-1.8-1V7.8a2 2 0 0 1 2-2Z" />
-        <path d="M9 10h6M9 13h4" />
+        <path d="M8 11.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" />
+        <path d="M16.4 10.4a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6Z" />
+        <path d="M3.5 19.2c.8-3 2.2-4.5 4.5-4.5s3.7 1.5 4.5 4.5" />
+        <path d="M12.4 18.8c.8-2.3 2.1-3.5 4-3.5 1.8 0 3.1 1.2 4 3.5" />
       </>
     ),
     calendar: (
@@ -123,47 +180,19 @@ function NavIcon({ type }) {
   );
 }
 
-function FamilyRail({ users }) {
+function ThemeToggle({ theme, onThemeChange }) {
+  const nextTheme = theme === "dark" ? "light" : "dark";
+
   return (
-    <aside className="family-rail" aria-label="Familia">
-      <div className="brand">
-        <span className="brand-mark">CN</span>
-        <div>
-          <p>Casa Nube</p>
-          <strong>Familia Arias</strong>
-        </div>
-      </div>
-
-      <section className="members" aria-label="Integrantes">
-        {users.map((member) => (
-          <article key={member.id}>
-            <span className={`avatar ${member.className}`}>{member.avatar}</span>
-            <div>
-              <strong>{member.name}</strong>
-              <p>{member.status}</p>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <a className="ghost-button rail-action" href="#usuarios">
-        Crear usuarios
-      </a>
-    </aside>
-  );
-}
-
-function ThemeToggle() {
-  return (
-    <label className="theme-toggle" htmlFor="theme-toggle">
+    <button className="theme-toggle" type="button" onClick={() => onThemeChange(nextTheme)}>
       <span className="sun-icon" aria-hidden="true">
         <SunIcon />
       </span>
       <span className="moon-icon" aria-hidden="true">
         <MoonIcon />
       </span>
-      <strong>Tema</strong>
-    </label>
+      <strong>{theme === "dark" ? "Noche" : "Dia"}</strong>
+    </button>
   );
 }
 
@@ -190,17 +219,18 @@ function Mascot() {
   );
 }
 
-function HomeSection() {
+function HomeSection({ records, users }) {
+  const upcoming = records.slice(0, 3);
+
   return (
     <>
       <section id="inicio" className="hero-panel">
         <div className="hero-copy">
           <p className="pill">Resumen familiar</p>
-          <h2>Hoy: entrega de mate, practica de voley y repaso de ciencias.</h2>
+          <h2>Hoy y lo que se viene en la familia.</h2>
           <p>
             Nubi avisa lo importante, guarda resultados y deja mensajes cortitos para que nadie
-            tenga que buscar en tres chats distintos. Cada dato queda asignado a una hija y muestra
-            quien lo cargo.
+            tenga que buscar en tres chats distintos.
           </p>
         </div>
         <Mascot />
@@ -218,12 +248,15 @@ function HomeSection() {
         </div>
 
         <div className="today-list">
-          {todayItems.map((item) => (
-            <article key={`${item.time}-${item.title}`}>
-              <time>{item.time}</time>
+          {upcoming.map((item) => (
+            <article key={item.id}>
+              <time>{item.date}</time>
               <div>
                 <strong>{item.title}</strong>
-                <p>{item.detail}</p>
+                <p>
+                  {item.type} - {userDisplay(users, item.assignedTo)} - cargado por{" "}
+                  {userDisplay(users, item.createdBy)}
+                </p>
               </div>
             </article>
           ))}
@@ -233,7 +266,16 @@ function HomeSection() {
   );
 }
 
-function ChatSection() {
+function ChatSection({ currentUser, messages, users, onSendMessage }) {
+  const [text, setText] = useState("");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (!text.trim()) return;
+    onSendMessage(text.trim());
+    setText("");
+  }
+
   return (
     <section id="chat" className="panel chat-panel">
       <div className="section-heading">
@@ -241,27 +283,43 @@ function ChatSection() {
           <p className="eyebrow">Comunicacion</p>
           <h2>Chat familiar</h2>
         </div>
-        <button className="ghost-button" type="button">
-          Enviar nota
-        </button>
+        <span className="soft-note">Escribe {currentUser.name}</span>
       </div>
 
       <div className="messages">
-        {messages.map((message) => (
-          <article className={`message ${message.tone ?? ""}`} key={`${message.author}-${message.text}`}>
-            <span className={`avatar ${message.className}`}>{message.avatar}</span>
-            <div>
-              <strong>{message.author}</strong>
-              <p>{message.text}</p>
-            </div>
-          </article>
-        ))}
+        {messages.map((message) => {
+          const author = getUser(users, message.authorId) ?? currentUser;
+          return (
+            <article
+              className={`message ${message.authorId === currentUser.id ? "mine" : ""}`}
+              key={message.id}
+            >
+              <MascotAvatar mascotId={author.mascotId} />
+              <div>
+                <strong>{author.name}</strong>
+                <p>{message.text}</p>
+              </div>
+            </article>
+          );
+        })}
       </div>
+
+      <form className="message-form" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Escribir nota familiar"
+        />
+        <button className="primary-action" type="submit">
+          Enviar
+        </button>
+      </form>
     </section>
   );
 }
 
-function CalendarSection() {
+function CalendarSection({ records, users }) {
   return (
     <section id="calendario" className="panel">
       <div className="section-heading">
@@ -278,13 +336,16 @@ function CalendarSection() {
       </div>
 
       <div className="timeline">
-        {calendarItems.map((item) => (
-          <article key={`${item.date}-${item.title}`}>
+        {records.map((item) => (
+          <article key={item.id}>
             <time>{item.date}</time>
-            <div className={`event-marker ${item.marker}`} />
+            <div className={`event-marker ${item.type.toLowerCase()}`} />
             <div>
               <strong>{item.title}</strong>
-              <p>{item.detail}</p>
+              <p>
+                {userDisplay(users, item.assignedTo)} - cargo {userDisplay(users, item.createdBy)} -{" "}
+                {item.detail}
+              </p>
             </div>
           </article>
         ))}
@@ -293,64 +354,11 @@ function CalendarSection() {
   );
 }
 
-function ResultsSection() {
-  return (
-    <aside id="resultados" className="side-column">
-      <section className="panel result-card exams">
-        <p className="eyebrow">Colegio</p>
-        <h2>Examenes</h2>
-        <div className="score-row">
-          <span>
-            Historia <small>Luli - cargo Luli</small>
-          </span>
-          <strong>9</strong>
-        </div>
-        <div className="score-row pending">
-          <span>
-            Ciencias <small>Luli - cargo Mama</small>
-          </span>
-          <strong>Pendiente</strong>
-        </div>
-      </section>
+function HistorySection({ records, users, selectedUserId, onSelectUser }) {
+  const childUsers = users.filter((user) => user.role === "Hija");
+  const activeUserId = selectedUserId ?? childUsers[0]?.id ?? users[0]?.id;
+  const userRecords = records.filter((record) => record.assignedTo === activeUserId);
 
-      <section className="panel result-card gym">
-        <p className="eyebrow">Gimnasia</p>
-        <h2>Torneo</h2>
-        <div className="apparatus">
-          <span>
-            Salto <b>8.80</b>
-            <small>Luli</small>
-          </span>
-          <span>
-            Viga <b>8.45</b>
-            <small>Luli</small>
-          </span>
-          <span>
-            Suelo <b>9.10</b>
-            <small>Luli</small>
-          </span>
-          <span>
-            Barras <b>8.70</b>
-            <small>Luli</small>
-          </span>
-        </div>
-      </section>
-
-      <section className="panel result-card volley">
-        <p className="eyebrow">Voley</p>
-        <h2>Ultimo partido</h2>
-        <div className="match-score">
-          <span>Club Norte</span>
-          <strong>2 - 1</strong>
-          <span>San Martin</span>
-        </div>
-        <p className="audit-line">Asignado a Sofi - cargado por Papa</p>
-      </section>
-    </aside>
-  );
-}
-
-function HistorySection() {
   return (
     <section id="historial" className="panel history-card">
       <div className="section-heading">
@@ -359,46 +367,87 @@ function HistorySection() {
           <h2>Por hija</h2>
         </div>
         <div className="child-tabs">
-          <button className="selected" type="button">
-            Luli
-          </button>
-          <button type="button">Sofi</button>
+          {childUsers.map((user) => (
+            <button
+              className={activeUserId === user.id ? "selected" : ""}
+              type="button"
+              key={user.id}
+              onClick={() => onSelectUser(user.id)}
+            >
+              {user.name}
+            </button>
+          ))}
         </div>
       </div>
       <div className="history-grid">
-        <article>
-          <strong>Gimnasia - Torneo apertura</strong>
-          <p>4 resultados asignados a Luli - ultimo cargado por Luli</p>
-        </article>
-        <article>
-          <strong>Colegio - Historia</strong>
-          <p>Nota 9 asignada a Luli - cargada por Luli</p>
-        </article>
-        <article>
-          <strong>Colegio - Ciencias</strong>
-          <p>Fecha asignada a Luli - cargada por Mama</p>
-        </article>
+        {userRecords.map((record) => (
+          <article key={record.id}>
+            <strong>
+              {record.type} - {record.title}
+            </strong>
+            <p>
+              {record.result} - cargado por {userDisplay(users, record.createdBy)}
+            </p>
+          </article>
+        ))}
+        {userRecords.length === 0 && <p className="empty-state">Todavia no hay registros.</p>}
       </div>
     </section>
   );
 }
 
-function CustomSelect({ value, options }) {
+function ResultsSection({ records, users }) {
+  const doneRecords = records.filter((record) => record.result && record.result !== "Pendiente");
+
   return (
-    <details className="custom-select">
-      <summary>{value}</summary>
-      <div className="select-menu">
-        {options.map((option) => (
-          <button type="button" key={option}>
-            {option}
-          </button>
-        ))}
-      </div>
-    </details>
+    <aside id="resultados" className="side-column">
+      {doneRecords.map((record) => (
+        <section className="panel result-card" key={record.id}>
+          <p className="eyebrow">{record.type}</p>
+          <h2>{record.title}</h2>
+          <div className="score-row">
+            <span>
+              {userDisplay(users, record.assignedTo)}
+              <small>cargo {userDisplay(users, record.createdBy)}</small>
+            </span>
+            <strong>{record.result}</strong>
+          </div>
+        </section>
+      ))}
+    </aside>
   );
 }
 
-function EntrySection() {
+function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
+  const assignableUsers = users.filter((user) => user.role === "Hija");
+  const [form, setForm] = useState({
+    type: "Voley",
+    assignedTo: assignableUsers[0]?.id ?? users[0]?.id,
+    date: "06 mayo, 18:30",
+    title: "Club Norte vs San Martin",
+    result: "2 - 1",
+    detail: "Sofi jugo el tercer set completo",
+  });
+
+  function updateField(event) {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function buildRecord(status = "saved") {
+    return {
+      id: crypto.randomUUID(),
+      ...form,
+      createdBy: currentUser.id,
+      status,
+    };
+  }
+
+  function handleSave(event) {
+    event.preventDefault();
+    onSaveRecord(buildRecord("saved"));
+    window.location.hash = "#calendario";
+  }
+
   return (
     <section id="cargar" className="panel entry-panel">
       <div className="section-heading">
@@ -406,79 +455,91 @@ function EntrySection() {
           <p className="eyebrow">Nuevo dato</p>
           <h2>Cargar y asignar</h2>
         </div>
-        <button className="ghost-button" type="button">
+        <button className="ghost-button" type="button" onClick={() => onSaveDraft(buildRecord("draft"))}>
           Guardar borrador
         </button>
       </div>
 
-      <form className="entry-form">
+      <form className="entry-form" onSubmit={handleSave}>
         <label>
           <span>Tipo</span>
-          <CustomSelect
-            value="Resultado de voley"
-            options={[
-              "Fecha de examen",
-              "Resultado de examen",
-              "Torneo de gimnasia",
-              "Resultado de voley",
-            ]}
-          />
+          <select name="type" value={form.type} onChange={updateField}>
+            <option>Examen</option>
+            <option>Gimnasia</option>
+            <option>Voley</option>
+          </select>
         </label>
         <label>
           <span>Asignado a</span>
-          <CustomSelect value="Sofi" options={["Luli", "Sofi"]} />
+          <select name="assignedTo" value={form.assignedTo} onChange={updateField}>
+            {assignableUsers.map((user) => (
+              <option value={user.id} key={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           <span>Cargado por</span>
-          <CustomSelect value="Papa" options={["Papa", "Mama", "Luli", "Sofi"]} />
+          <input type="text" value={currentUser.name} readOnly />
         </label>
         <label>
           <span>Fecha</span>
-          <input type="text" defaultValue="06 mayo, 18:30" />
+          <input name="date" type="text" value={form.date} onChange={updateField} />
+        </label>
+        <label>
+          <span>Titulo</span>
+          <input name="title" type="text" value={form.title} onChange={updateField} />
+        </label>
+        <label>
+          <span>Resultado</span>
+          <input name="result" type="text" value={form.result} onChange={updateField} />
         </label>
         <label className="wide">
           <span>Detalle</span>
-          <textarea defaultValue="Club Norte gano 2-1. Sofi jugo el tercer set completo." />
+          <textarea name="detail" value={form.detail} onChange={updateField} />
         </label>
-        <button className="primary-action wide" type="button">
-          Guardar en historial de Sofi
+        <button className="primary-action wide" type="submit">
+          Guardar en historial
         </button>
       </form>
     </section>
   );
 }
 
-function UsersSection({ users, onCreateUser }) {
+function UsersSection({ users, currentUser, selectedUserId, onSelectUser, onCreateUser, onDeleteUser, onMakeAdmin }) {
   const [form, setForm] = useState({
     name: "",
     role: "Hija",
     status: "Nueva",
+    mascotId: "nubi",
+    isAdmin: false,
   });
+  const selectedUser = getUser(users, selectedUserId) ?? users[0];
+  const currentUserIsAdmin = currentUser.isAdmin;
 
   function handleChange(event) {
+    const { name, value, type, checked } = event.target;
     setForm((current) => ({
       ...current,
-      [event.target.name]: event.target.value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   }
 
   function handleSubmit(event) {
     event.preventDefault();
-
-    if (!form.name.trim()) {
-      return;
-    }
+    if (!form.name.trim()) return;
 
     onCreateUser({
       id: crypto.randomUUID(),
       name: form.name.trim(),
       role: form.role,
       status: form.status.trim() || form.role,
-      avatar: form.name.trim().slice(0, 1).toUpperCase(),
-      className: form.role === "Padre" ? "dad" : form.role === "Madre" ? "mom" : "girl-a",
+      mascotId: form.mascotId,
+      isAdmin: form.isAdmin,
     });
 
-    setForm({ name: "", role: "Hija", status: "Nueva" });
+    setForm({ name: "", role: "Hija", status: "Nueva", mascotId: "nubi", isAdmin: false });
   }
 
   return (
@@ -486,26 +547,59 @@ function UsersSection({ users, onCreateUser }) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Familia</p>
-          <h2>Usuarios</h2>
+          <h2>Integrantes</h2>
         </div>
-        <a className="ghost-button" href="#inicio">
-          Volver al inicio
-        </a>
+        <span className="admin-badge">Admin: {currentUser.name}</span>
       </div>
 
       <div className="users-layout">
         <div className="user-list">
           {users.map((user) => (
-            <article key={user.id}>
-              <span className={`avatar ${user.className}`}>{user.avatar}</span>
-              <div>
+            <button
+              className={`user-card ${selectedUser?.id === user.id ? "selected" : ""}`}
+              type="button"
+              key={user.id}
+              onClick={() => onSelectUser(user.id)}
+            >
+              <MascotAvatar mascotId={user.mascotId} />
+              <span>
                 <strong>{user.name}</strong>
+                <small>
+                  {user.role} - {user.status} {user.isAdmin ? "- admin" : ""}
+                </small>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="profile-panel">
+          {selectedUser && (
+            <>
+              <MascotAvatar mascotId={selectedUser.mascotId} size="large" />
+              <div>
+                <p className="eyebrow">Vista personal</p>
+                <h2>{selectedUser.name}</h2>
                 <p>
-                  {user.role} - {user.status}
+                  {selectedUser.role} - {selectedUser.status}
                 </p>
               </div>
-            </article>
-          ))}
+              <div className="profile-actions">
+                <a className="ghost-button" href="#historial">
+                  Ver historial
+                </a>
+                {!selectedUser.isAdmin && currentUserIsAdmin && (
+                  <button className="ghost-button" type="button" onClick={() => onMakeAdmin(selectedUser.id)}>
+                    Hacer admin
+                  </button>
+                )}
+                {currentUserIsAdmin && selectedUser.id !== currentUser.id && (
+                  <button className="danger-button" type="button" onClick={() => onDeleteUser(selectedUser.id)}>
+                    Eliminar integrante
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <form className="entry-form user-form" onSubmit={handleSubmit}>
@@ -521,7 +615,7 @@ function UsersSection({ users, onCreateUser }) {
               <option>Hija</option>
             </select>
           </label>
-          <label className="wide">
+          <label>
             <span>Estado visible</span>
             <input
               name="status"
@@ -530,6 +624,20 @@ function UsersSection({ users, onCreateUser }) {
               onChange={handleChange}
               placeholder="Ej: Colegio, Voley, Online"
             />
+          </label>
+          <label>
+            <span>Mascota avatar</span>
+            <select name="mascotId" value={form.mascotId} onChange={handleChange}>
+              {mascotOptions.map((mascot) => (
+                <option value={mascot.id} key={mascot.id}>
+                  {mascot.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="checkbox-row wide">
+            <input name="isAdmin" type="checkbox" checked={form.isAdmin} onChange={handleChange} />
+            <span>Administrador del grupo</span>
           </label>
           <button className="primary-action wide" type="submit">
             Crear usuario
@@ -554,9 +662,9 @@ function BottomNav({ activeSection }) {
       <a className="add-slot" href="#cargar" aria-label="Cargar nuevo dato">
         +
       </a>
-      <a className={activeSection === "historial" ? "active" : ""} href="#historial">
-        <NavIcon type="history" />
-        <span>Historial</span>
+      <a className={activeSection === "usuarios" ? "active" : ""} href="#usuarios">
+        <NavIcon type="family" />
+        <span>Familia</span>
       </a>
       <a className={activeSection === "calendario" ? "active" : ""} href="#calendario">
         <NavIcon type="calendar" />
@@ -568,10 +676,15 @@ function BottomNav({ activeSection }) {
 
 export default function App() {
   const [activeSection, setActiveSection] = useState(() => window.location.hash.replace("#", "") || "inicio");
-  const [users, setUsers] = useState(() => {
-    const savedUsers = window.localStorage.getItem("casa-nube-users");
-    return savedUsers ? JSON.parse(savedUsers) : familyMembers;
-  });
+  const [theme, setTheme] = useState(() => window.localStorage.getItem("casa-nube-theme") || "light");
+  const [users, setUsers] = useState(() => readStorage("casa-nube-users", initialUsers));
+  const [records, setRecords] = useState(() => readStorage("casa-nube-records", initialRecords));
+  const [messages, setMessages] = useState(() => readStorage("casa-nube-messages", initialMessages));
+  const [drafts, setDrafts] = useState(() => readStorage("casa-nube-drafts", []));
+  const [selectedUserId, setSelectedUserId] = useState(() => window.localStorage.getItem("casa-nube-selected-user") || "papa");
+  const [historyUserId, setHistoryUserId] = useState("luli");
+
+  const currentUser = useMemo(() => getUser(users, "papa") ?? users[0], [users]);
 
   useEffect(() => {
     function updateActiveSection() {
@@ -585,45 +698,128 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    document.body.dataset.theme = theme;
+    window.localStorage.setItem("casa-nube-theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
     window.localStorage.setItem("casa-nube-users", JSON.stringify(users));
   }, [users]);
 
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-records", JSON.stringify(records));
+  }, [records]);
+
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-messages", JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-drafts", JSON.stringify(drafts));
+  }, [drafts]);
+
+  useEffect(() => {
+    window.localStorage.setItem("casa-nube-selected-user", selectedUserId);
+  }, [selectedUserId]);
+
   function handleCreateUser(user) {
     setUsers((current) => [...current, user]);
+    setSelectedUserId(user.id);
+  }
+
+  function handleDeleteUser(userId) {
+    setUsers((current) => current.filter((user) => user.id !== userId));
+    setRecords((current) => current.filter((record) => record.assignedTo !== userId && record.createdBy !== userId));
+    setMessages((current) => current.filter((message) => message.authorId !== userId));
+    setSelectedUserId("papa");
+  }
+
+  function handleMakeAdmin(userId) {
+    setUsers((current) =>
+      current.map((user) => ({
+        ...user,
+        isAdmin: user.id === userId ? true : user.isAdmin,
+      })),
+    );
+  }
+
+  function handleSaveRecord(record) {
+    setRecords((current) => [record, ...current]);
+  }
+
+  function handleSaveDraft(draft) {
+    setDrafts((current) => [draft, ...current]);
+  }
+
+  function handleSendMessage(text) {
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        authorId: currentUser.id,
+        text,
+      },
+    ]);
   }
 
   return (
     <>
-      <input className="theme-input" id="theme-toggle" type="checkbox" aria-label="Activar tema oscuro" />
-      <main className="app-shell">
-        <FamilyRail users={users} />
-
+      <main className="app-shell app-shell-single">
         <section className="workspace">
           <header className="topbar">
-            <div>
-              <p className="eyebrow">Miercoles 29 de abril</p>
-              <h1>Hoy y lo que se viene</h1>
+            <div className="brand compact-brand">
+              <span className="brand-mark">CN</span>
+              <div>
+                <p>Casa Nube</p>
+                <strong>Familia Arias</strong>
+              </div>
             </div>
             <div className="top-actions">
-              <ThemeToggle />
-              <a className="primary-action" href="#calendario">
-                Ver calendario
+              <ThemeToggle theme={theme} onThemeChange={setTheme} />
+              <a className="primary-action" href="#usuarios">
+                Integrantes
               </a>
             </div>
           </header>
 
-          {activeSection === "inicio" && (
-            <div className="main-column">
-              <HomeSection />
-            </div>
+          {activeSection === "inicio" && <HomeSection records={records} users={users} />}
+          {activeSection === "chat" && (
+            <ChatSection
+              currentUser={currentUser}
+              messages={messages}
+              users={users}
+              onSendMessage={handleSendMessage}
+            />
           )}
-
-          {activeSection === "chat" && <ChatSection />}
-          {activeSection === "calendario" && <CalendarSection />}
-          {activeSection === "resultados" && <ResultsSection />}
-          {activeSection === "historial" && <HistorySection />}
-          {activeSection === "usuarios" && <UsersSection users={users} onCreateUser={handleCreateUser} />}
-          {activeSection === "cargar" && <EntrySection />}
+          {activeSection === "calendario" && <CalendarSection records={records} users={users} />}
+          {activeSection === "resultados" && <ResultsSection records={records} users={users} />}
+          {activeSection === "historial" && (
+            <HistorySection
+              records={records}
+              users={users}
+              selectedUserId={historyUserId}
+              onSelectUser={setHistoryUserId}
+            />
+          )}
+          {activeSection === "usuarios" && (
+            <UsersSection
+              users={users}
+              currentUser={currentUser}
+              selectedUserId={selectedUserId}
+              onSelectUser={setSelectedUserId}
+              onCreateUser={handleCreateUser}
+              onDeleteUser={handleDeleteUser}
+              onMakeAdmin={handleMakeAdmin}
+            />
+          )}
+          {activeSection === "cargar" && (
+            <EntrySection
+              currentUser={currentUser}
+              users={users}
+              onSaveRecord={handleSaveRecord}
+              onSaveDraft={handleSaveDraft}
+            />
+          )}
         </section>
       </main>
 

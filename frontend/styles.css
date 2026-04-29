@@ -36,7 +36,8 @@ body {
   font-family: "Nunito", system-ui, sans-serif;
 }
 
-body:has(#theme-toggle:checked) {
+body:has(#theme-toggle:checked),
+body[data-theme="dark"] {
   color-scheme: dark;
   --ink: #fff7ec;
   --muted: #cfc2d3;
@@ -85,6 +86,15 @@ textarea {
   min-height: 100vh;
   margin: 0 auto;
   padding: 22px;
+}
+
+.app-shell-single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 980px;
+}
+
+.compact-brand {
+  min-width: 220px;
 }
 
 .family-rail,
@@ -306,11 +316,13 @@ h2 {
   color: #c7b9ff;
 }
 
-body:has(#theme-toggle:checked) .theme-toggle {
+body:has(#theme-toggle:checked) .theme-toggle,
+body[data-theme="dark"] .theme-toggle {
   background: rgba(255, 255, 255, 0.12);
 }
 
-body:has(#theme-toggle:checked) .moon-icon {
+body:has(#theme-toggle:checked) .moon-icon,
+body[data-theme="dark"] .moon-icon {
   background: var(--lavender);
   color: #241d2d;
 }
@@ -701,7 +713,7 @@ body:has(#resultados:target) #resultados {
 
 .users-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.75fr) minmax(320px, 1fr);
   gap: 18px;
   margin-top: 20px;
 }
@@ -711,23 +723,156 @@ body:has(#resultados:target) #resultados {
   gap: 12px;
 }
 
-.user-list article {
+.user-list article,
+.user-card {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  border: 0;
   border-radius: 20px;
   padding: 14px;
+  color: var(--ink);
   background: var(--field);
+  cursor: pointer;
+  text-align: left;
 }
 
-.user-list p {
+.user-card.selected {
+  outline: 3px solid color-mix(in srgb, var(--sun) 70%, transparent);
+  background: var(--warm-chip);
+}
+
+.user-list p,
+.user-card small {
+  display: block;
   margin: 2px 0 0;
   color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .user-form {
   align-content: start;
   margin-top: 0;
+}
+
+.profile-panel {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 14px;
+  border-radius: 22px;
+  padding: 18px;
+  background: var(--field);
+}
+
+.profile-panel p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.profile-actions {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+}
+
+.admin-badge,
+.soft-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--warm-ink);
+  background: var(--warm-chip);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 0;
+  border-radius: 16px;
+  padding: 0 14px;
+  color: #5f2330;
+  background: color-mix(in srgb, var(--rose) 42%, white);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-row input {
+  width: 20px;
+  height: 20px;
+}
+
+.mascot-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 3px solid color-mix(in srgb, var(--panel) 80%, transparent);
+  border-radius: 50%;
+  color: #47313f;
+  box-shadow: 0 8px 18px rgba(105, 82, 65, 0.12);
+  font-family: "Baloo 2", cursive;
+  font-weight: 800;
+}
+
+.mascot-avatar.large {
+  width: 82px;
+  height: 82px;
+  font-size: 1.35rem;
+}
+
+.mascot-nubi {
+  background: var(--sky);
+}
+
+.mascot-soli {
+  background: var(--sun);
+}
+
+.mascot-luma {
+  background: var(--mint);
+}
+
+.mascot-bubu {
+  background: var(--lavender);
+}
+
+.message-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.message-form input {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0 14px;
+  color: var(--ink);
+  background: var(--field);
+  outline: none;
+}
+
+.empty-state {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .entry-form textarea {
@@ -831,11 +976,23 @@ body:has(#resultados:target) #resultados {
   background: var(--sun);
 }
 
+.event-marker.examen {
+  background: var(--sun);
+}
+
 .event-marker.gym {
   background: var(--rose);
 }
 
+.event-marker.gimnasia {
+  background: var(--rose);
+}
+
 .event-marker.volley {
+  background: var(--sky);
+}
+
+.event-marker.voley {
   background: var(--sky);
 }
 
@@ -1010,6 +1167,7 @@ body:not(:has(:target)) .bottom-nav a[href="#inicio"],
 body:has(#inicio:target) .bottom-nav a[href="#inicio"],
 body:has(#chat:target) .bottom-nav a[href="#chat"],
 body:has(#historial:target) .bottom-nav a[href="#historial"],
+body:has(#usuarios:target) .bottom-nav a[href="#usuarios"],
 body:has(#calendario:target) .bottom-nav a[href="#calendario"] {
   color: var(--ink);
   background: var(--warm-chip);
@@ -1078,11 +1236,15 @@ body:has(#calendario:target) .bottom-nav a[href="#calendario"] {
 
 body:has(#theme-toggle:checked) .face,
 body:has(#theme-toggle:checked) .ear,
-body:has(#theme-toggle:checked) .paw {
+body:has(#theme-toggle:checked) .paw,
+body[data-theme="dark"] .face,
+body[data-theme="dark"] .ear,
+body[data-theme="dark"] .paw {
   background: #fff8fb;
 }
 
-body:has(#theme-toggle:checked) .speech {
+body:has(#theme-toggle:checked) .speech,
+body[data-theme="dark"] .speech {
   color: #3e3440;
 }
 
@@ -1194,6 +1356,10 @@ body:has(#theme-toggle:checked) .speech {
   }
 
   .users-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .message-form {
     grid-template-columns: 1fr;
   }
 
