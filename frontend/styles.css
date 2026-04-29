@@ -1293,6 +1293,10 @@ body:has(#resultados:target) #resultados {
   stroke-width: 3;
 }
 
+.pet-ear-fill {
+  fill: rgba(255, 255, 255, 0.62);
+}
+
 .mascot-nubi {
   background: var(--sky);
 }
@@ -1307,6 +1311,22 @@ body:has(#resultados:target) #resultados {
 
 .mascot-bubu {
   background: var(--lavender);
+}
+
+.mascot-pipo {
+  background: var(--peach);
+}
+
+.mascot-mishi {
+  background: var(--rose);
+}
+
+.mascot-toto {
+  background: var(--mint);
+}
+
+.mascot-momo {
+  background: #ffd9ea;
 }
 
 .message-form {

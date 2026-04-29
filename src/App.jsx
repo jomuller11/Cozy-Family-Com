@@ -5,6 +5,10 @@ const mascotOptions = [
   { id: "soli", name: "Soli", symbol: "So", className: "mascot-soli" },
   { id: "luma", name: "Luma", symbol: "Lu", className: "mascot-luma" },
   { id: "bubu", name: "Bubu", symbol: "Bu", className: "mascot-bubu" },
+  { id: "pipo", name: "Pipo", symbol: "Pi", className: "mascot-pipo" },
+  { id: "mishi", name: "Mishi", symbol: "Mi", className: "mascot-mishi" },
+  { id: "toto", name: "Toto", symbol: "To", className: "mascot-toto" },
+  { id: "momo", name: "Momo", symbol: "Mo", className: "mascot-momo" },
 ];
 
 const initialUsers = [
@@ -287,6 +291,40 @@ function MascotAvatar({ mascotId, size = "regular" }) {
   return (
     <span className={`mascot-avatar ${mascot.className} ${size}`} aria-label={mascot.name}>
       <svg viewBox="0 0 80 80" aria-hidden="true">
+        {mascot.id === "pipo" && (
+          <>
+            <path className="pet-face" d="M40 9 47 28l20 1-16 12 5 20-16-11-16 11 5-20-16-12 20-1 7-19Z" />
+            <path className="pet-line" d="M31 38h.1M49 38h.1M34 49c4 3 8 3 12 0" />
+            <circle className="pet-blush" cx="27" cy="45" r="4" />
+            <circle className="pet-blush" cx="53" cy="45" r="4" />
+          </>
+        )}
+        {mascot.id === "mishi" && (
+          <>
+            <path className="pet-face" d="M18 34 25 17l12 9c2-.3 4-.3 6 0l12-9 7 17v9c0 15-9 25-22 25S18 58 18 43v-9Z" />
+            <path className="pet-line" d="M30 41h.1M50 41h.1M36 47h8M33 53c3 3 11 3 14 0M23 47h8M49 47h8" />
+            <circle className="pet-blush" cx="28" cy="49" r="4" />
+            <circle className="pet-blush" cx="52" cy="49" r="4" />
+          </>
+        )}
+        {mascot.id === "toto" && (
+          <>
+            <path className="pet-face" d="M40 9c12 15 23 27 23 40 0 12-9 21-23 21S17 61 17 49c0-13 11-25 23-40Z" />
+            <path className="pet-line" d="M31 43h.1M49 43h.1M35 54c4 3 6 3 10 0" />
+            <path className="pet-belly" d="M31 61c3-5 15-5 18 0" />
+            <circle className="pet-blush" cx="28" cy="51" r="4" />
+            <circle className="pet-blush" cx="52" cy="51" r="4" />
+          </>
+        )}
+        {mascot.id === "momo" && (
+          <>
+            <path className="pet-face" d="M21 40c0-13 8-22 19-22s19 9 19 22v7c0 12-8 21-19 21S21 59 21 47v-7Z" />
+            <path className="pet-face pet-ear-fill" d="M29 22c-4-11-2-18 4-19 6-1 9 7 8 18M51 22c4-11 2-18-4-19-6-1-9 7-8 18" />
+            <path className="pet-line" d="M31 40h.1M49 40h.1M35 52c4 3 6 3 10 0" />
+            <circle className="pet-blush" cx="28" cy="48" r="4" />
+            <circle className="pet-blush" cx="52" cy="48" r="4" />
+          </>
+        )}
         {mascot.id === "soli" && (
           <>
             <circle className="pet-halo" cx="40" cy="40" r="30" />
