@@ -745,6 +745,13 @@ const ChatView = () => {
 // ─────────────────────────────────────────────────────────────
 // CARGAR ACTIVIDAD
 // ─────────────────────────────────────────────────────────────
+const Field = ({ label, children }) => (
+  <div className="field">
+    <label className="lbl">{label}</label>
+    {children}
+  </div>
+);
+
 const LoadView = () => {
   const { familyData, user, setTab } = useApp();
   const [type, setType] = useState(null);
@@ -792,13 +799,6 @@ const LoadView = () => {
       setSaving(false);
     }
   };
-
-  const Field = ({ label, children }) => (
-    <div className="field">
-      <label className="lbl">{label}</label>
-      {children}
-    </div>
-  );
 
   if (done) {
     return (
