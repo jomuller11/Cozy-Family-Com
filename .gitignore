@@ -4,7 +4,6 @@ dist/
 serve.err
 
 # Amplify
-amplify_outputs.json
 .amplify/
 
 # Claude memory

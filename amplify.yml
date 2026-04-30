@@ -4,7 +4,6 @@ frontend:
     preBuild:
       commands:
         - npm install --no-fund --no-audit
-        - echo "$AMPLIFY_OUTPUTS" | base64 -d > amplify_outputs.json
     build:
       commands:
         - npm run build
