@@ -791,6 +791,10 @@
       input[type="time"].cozy-input {
         min-width: 0;
         -webkit-text-fill-color: var(--ink);
+        height: 54px;
+        box-sizing: border-box;
+        padding-top: 0;
+        padding-bottom: 0;
       }
       @media (max-width: 480px) {
         .row-2 { grid-template-columns: 1fr; }
