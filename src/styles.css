@@ -786,6 +786,10 @@
       }
       .field { margin-bottom: 10px; }
       .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .row-2 > * { min-width: 0; }
+      .row-2 .cozy-input { padding-left: 10px; padding-right: 10px; font-size: 15px; }
+      input[type="date"].cozy-input,
+      input[type="time"].cozy-input { min-width: 0; }
       .scores-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
