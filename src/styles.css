@@ -786,18 +786,19 @@
       }
       .field { margin-bottom: 10px; }
       .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .row-2 > * { min-width: 0; }
+      .row-2 > * { min-width: 0; overflow: hidden; }
       input[type="date"].cozy-input,
       input[type="time"].cozy-input {
+        width: 100%;
+        max-width: 100%;
         min-width: 0;
-        -webkit-text-fill-color: var(--ink);
-        height: 54px;
         box-sizing: border-box;
+        height: 54px;
         padding-top: 0;
         padding-bottom: 0;
-      }
-      @media (max-width: 480px) {
-        .row-2 { grid-template-columns: 1fr; }
+        padding-left: 10px;
+        padding-right: 6px;
+        -webkit-text-fill-color: var(--ink);
       }
       .scores-grid {
         display: grid;
