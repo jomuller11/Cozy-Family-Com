@@ -1,1336 +1,1369 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  confirmSignUp,
+  getCurrentUser,
+  signIn,
+  signOut,
+  signUp,
+} from "aws-amplify/auth";
+import * as db from "./lib/data";
 
-const mascotOptions = [
-  { id: "nubi", name: "Nubi", symbol: "Nu", className: "mascot-nubi" },
-  { id: "soli", name: "Soli", symbol: "So", className: "mascot-soli" },
-  { id: "luma", name: "Luma", symbol: "Lu", className: "mascot-luma" },
-  { id: "bubu", name: "Bubu", symbol: "Bu", className: "mascot-bubu" },
-];
+// ============================================================
+// COZY FAMILY COM — React + Amplify backend
+// Paper-craft / cozy aesthetic. Mobile-first. SVG mascots.
+// ============================================================
 
-const initialUsers = [
-  {
-    id: "papa",
-    name: "Papa",
-    role: "Padre",
-    status: "Online",
-    mascotId: "nubi",
-    isAdmin: true,
-  },
-  {
-    id: "mama",
-    name: "Mama",
-    role: "Madre",
-    status: "En camino",
-    mascotId: "soli",
-    isAdmin: false,
-  },
-  {
-    id: "luli",
-    name: "Luli",
-    role: "Hija",
-    status: "Gimnasia",
-    mascotId: "luma",
-    isAdmin: false,
-  },
-  {
-    id: "sofi",
-    name: "Sofi",
-    role: "Hija",
-    status: "Voley",
-    mascotId: "bubu",
-    isAdmin: false,
-  },
-];
-
-const initialAccounts = [
-  {
-    id: "papa",
-    email: "papa@casa.local",
-    password: "casa1234",
-    userId: "papa",
-  },
-];
-
-const initialRecords = [
-  {
-    id: "rec-1",
-    type: "Examen",
-    title: "Examen de ciencias",
-    assignedTo: "luli",
-    createdBy: "mama",
-    date: "30 abr, 08:20",
-    dateISO: "2026-04-30T08:20",
-    detail: "Aula 4",
-    result: "Pendiente",
-  },
-  {
-    id: "rec-2",
-    type: "Gimnasia",
-    title: "Torneo apertura",
-    assignedTo: "luli",
-    createdBy: "luli",
-    date: "03 may",
-    dateISO: "2026-05-03T10:00",
-    detail: "Salto 8.80, viga 8.45, suelo 9.10 y barras 8.70",
-    result: "Promedio 8.76",
-  },
-  {
-    id: "rec-3",
-    type: "Voley",
-    title: "Club Norte vs San Martin",
-    assignedTo: "sofi",
-    createdBy: "papa",
-    date: "06 may, 18:30",
-    dateISO: "2026-05-06T18:30",
-    detail: "Sofi jugo el tercer set completo",
-    result: "2 - 1",
-  },
-];
-
-const initialMessages = [
-  {
-    id: "msg-1",
-    authorId: "mama",
-    text: "Deje las medias de gimnasia en la mochila rosa.",
-  },
-  {
-    id: "msg-2",
-    authorId: "papa",
-    text: "Yo busco a Sofi despues del partido. Avisen resultado.",
-  },
-  {
-    id: "msg-3",
-    authorId: "luli",
-    text: "Me saque 9 en historia. Lo cargue en examenes.",
-  },
-];
-
-function readStorage(key, fallback) {
-  try {
-    const value = window.localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function normalizeUsers(savedUsers) {
-  return savedUsers.map((user, index) => {
-    const fallbackUser = initialUsers.find((item) => item.id === user.id);
-    return {
-      ...user,
-      role: user.role ?? fallbackUser?.role ?? "Hija",
-      status: user.status ?? fallbackUser?.status ?? "Nueva",
-      mascotId: user.mascotId ?? fallbackUser?.mascotId ?? mascotOptions[index % mascotOptions.length].id,
-      isAdmin: user.isAdmin ?? user.id === "papa",
+// ----- Mascot SVGs -------------------------------------------
+const Mascot = ({ name, size = 64, blink = true }) => {
+  const [eyesClosed, setEyesClosed] = useState(false);
+  useEffect(() => {
+    if (!blink) return;
+    let t;
+    const loop = () => {
+      const delay = 2200 + Math.random() * 3500;
+      t = setTimeout(() => {
+        setEyesClosed(true);
+        setTimeout(() => setEyesClosed(false), 140);
+        loop();
+      }, delay);
     };
-  });
-}
+    loop();
+    return () => clearTimeout(t);
+  }, [blink]);
 
-function normalizeRecords(savedRecords) {
-  return savedRecords.map((record) => {
-    const fallback = initialRecords.find((item) => item.id === record.id);
-    return {
-      ...record,
-      dateISO: record.dateISO ?? fallback?.dateISO ?? legacyDateToISO(record.date),
-    };
-  });
-}
+  const eyeY = eyesClosed ? 52 : 50;
+  const eyeRy = eyesClosed ? 0.5 : 3.2;
 
-function legacyDateToISO(dateText) {
-  const text = String(dateText ?? "").toLowerCase();
-  const day = getDayNumber(text);
-  const monthMap = {
-    abr: 3,
-    abril: 3,
-    may: 4,
-    mayo: 4,
+  const palettes = {
+    nubi:  { body: "#cfe3f0", belly: "#ecf4fa", cheek: "#f4b6b6", accent: "#7fa8c2" },
+    soli:  { body: "#ffd58a", belly: "#fff0c8", cheek: "#f1968a", accent: "#e89540" },
+    luma:  { body: "#e6d3ef", belly: "#f6ecfa", cheek: "#f0a8b8", accent: "#a07cc2" },
+    bubu:  { body: "#bfe2c8", belly: "#e3f3e6", cheek: "#f0a8b8", accent: "#6b9a78" },
+    pipo:  { body: "#f4c7a1", belly: "#fbe7d2", cheek: "#e89090", accent: "#c47a4a" },
+    mishi: { body: "#d6c2ad", belly: "#efe1cf", cheek: "#e89090", accent: "#8b6f50" },
+    toto:  { body: "#cdb89a", belly: "#e8dcc6", cheek: "#d68585", accent: "#7d6446" },
+    momo:  { body: "#f0a8c0", belly: "#fad4e0", cheek: "#d97090", accent: "#b66a86" },
   };
-  const monthKey = Object.keys(monthMap).find((key) => text.includes(key));
-  const month = monthKey ? monthMap[monthKey] : 3;
-  const timeMatch = text.match(/(\d{1,2}):(\d{2})/);
-  const hour = timeMatch ? Number(timeMatch[1]) : 10;
-  const minute = timeMatch ? Number(timeMatch[2]) : 0;
-  return toDateTimeLocalValue(new Date(2026, month, day, hour, minute));
-}
+  const c = palettes[name] || palettes.nubi;
 
-function getMascot(mascotId) {
-  return mascotOptions.find((mascot) => mascot.id === mascotId) ?? mascotOptions[0];
-}
-
-function getUser(users, userId) {
-  return users.find((user) => user.id === userId);
-}
-
-function createInviteCode() {
-  return Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
-}
-
-function userDisplay(users, userId) {
-  return getUser(users, userId)?.name ?? "Sin asignar";
-}
-
-function toDateTimeLocalValue(date) {
-  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return offsetDate.toISOString().slice(0, 16);
-}
-
-function formatRecordDate(dateISO) {
-  const date = new Date(dateISO);
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function getRecordDate(record) {
-  return new Date(record.dateISO);
-}
-
-function getWeekStart(date) {
-  const start = new Date(date);
-  const day = (start.getDay() + 6) % 7;
-  start.setDate(start.getDate() - day);
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
-function isSameDay(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function MascotAvatar({ mascotId, size = "regular" }) {
-  const mascot = getMascot(mascotId);
-
-  return (
-    <span className={`mascot-avatar ${mascot.className} ${size}`} aria-label={mascot.name}>
-      <svg viewBox="0 0 80 80" aria-hidden="true">
-        {mascot.id === "soli" && (
+  const renderDetails = () => {
+    switch (name) {
+      case "nubi":
+        return (
           <>
-            <circle className="pet-halo" cx="40" cy="40" r="30" />
-            <circle className="pet-face" cx="40" cy="40" r="23" />
-            <path className="pet-line" d="M28 36c3-3 7-3 10 0M42 36c3-3 7-3 10 0" />
-            <path className="pet-line" d="M33 48c4 4 10 4 14 0" />
-            <circle className="pet-blush" cx="25" cy="45" r="4" />
-            <circle className="pet-blush" cx="55" cy="45" r="4" />
+            <ellipse cx="32" cy="28" rx="10" ry="8" fill={c.body} />
+            <ellipse cx="55" cy="22" rx="13" ry="11" fill={c.body} />
+            <ellipse cx="78" cy="30" rx="9" ry="7" fill={c.body} />
           </>
-        )}
-        {mascot.id === "luma" && (
+        );
+      case "soli":
+        return (
+          <g stroke={c.accent} strokeWidth="3" strokeLinecap="round">
+            <line x1="50" y1="8" x2="50" y2="18" />
+            <line x1="20" y1="20" x2="27" y2="27" />
+            <line x1="80" y1="20" x2="73" y2="27" />
+            <line x1="10" y1="50" x2="20" y2="50" />
+            <line x1="90" y1="50" x2="80" y2="50" />
+          </g>
+        );
+      case "luma":
+        return (
           <>
-            <path className="pet-face" d="M18 43c0-16 10-26 22-26s22 10 22 26c0 15-10 25-22 25S18 58 18 43Z" />
-            <path className="pet-line" d="M28 20 22 9M52 20l6-11M31 39h.1M49 39h.1M34 51c3 3 9 3 12 0" />
-            <circle className="pet-blush" cx="27" cy="47" r="4" />
-            <circle className="pet-blush" cx="53" cy="47" r="4" />
+            <path d="M 20 25 Q 15 35 25 38 Q 22 30 30 28 Z" fill={c.accent} opacity="0.5" />
+            <path d="M 80 22 l 2 5 l 5 1 l -4 3 l 1 5 l -4 -3 l -4 3 l 1 -5 l -4 -3 l 5 -1 z" fill={c.accent} opacity="0.6" />
           </>
-        )}
-        {mascot.id === "bubu" && (
+        );
+      case "bubu":
+        return (
           <>
-            <path className="pet-face" d="M20 40c0-14 9-23 20-23s20 9 20 23v7c0 12-8 21-20 21S20 59 20 47v-7Z" />
-            <path className="pet-line" d="M27 24 20 15M53 24l7-9M31 39h.1M49 39h.1M34 52c4 2 8 2 12 0" />
-            <path className="pet-belly" d="M31 58c2-5 16-5 18 0" />
+            <circle cx="20" cy="25" r="4" fill={c.body} opacity="0.6" />
+            <circle cx="82" cy="20" r="6" fill={c.body} opacity="0.6" />
+            <circle cx="88" cy="35" r="3" fill={c.body} opacity="0.6" />
           </>
-        )}
-        {mascot.id === "nubi" && (
+        );
+      case "pipo":
+        return (
           <>
-            <path className="pet-face" d="M20 43c-8-1-13-7-13-15 0-9 8-16 17-14C29 5 43 6 48 16c10-2 21 5 21 16 0 10-8 18-19 18H24c-2 0-3 0-4-1Z" />
-            <path className="pet-line" d="M29 35h.1M48 35h.1M34 45c3 3 8 3 11 0" />
-            <circle className="pet-blush" cx="24" cy="41" r="4" />
-            <circle className="pet-blush" cx="54" cy="41" r="4" />
+            <path d="M 22 35 L 18 12 L 38 28 Z" fill={c.body} stroke={c.accent} strokeWidth="1.5" />
+            <path d="M 78 35 L 82 12 L 62 28 Z" fill={c.body} stroke={c.accent} strokeWidth="1.5" />
+            <path d="M 24 32 L 22 18 L 33 26 Z" fill={c.cheek} opacity="0.7" />
+            <path d="M 76 32 L 78 18 L 67 26 Z" fill={c.cheek} opacity="0.7" />
           </>
-        )}
-      </svg>
-    </span>
-  );
-}
-
-function SunIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2.8v2.1M12 19.1v2.1M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2.8 12h2.1M19.1 12h2.1M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M18.4 15.8a7.2 7.2 0 0 1-10.2-10 7.8 7.8 0 1 0 10.2 10Z" />
-    </svg>
-  );
-}
-
-function NavIcon({ type }) {
-  const icons = {
-    home: (
-      <>
-        <path d="M4 11.2 12 4l8 7.2" />
-        <path d="M6.5 10.5v8.2h11v-8.2" />
-        <path d="M10 18.7v-5h4v5" />
-      </>
-    ),
-    chat: (
-      <>
-        <path d="M5.2 6.2h13.6a2.2 2.2 0 0 1 2.2 2.2v5.8a2.2 2.2 0 0 1-2.2 2.2h-7.4l-4.5 3v-3H5.2A2.2 2.2 0 0 1 3 14.2V8.4a2.2 2.2 0 0 1 2.2-2.2Z" />
-        <path d="M8 10.2h8M8 13.1h5" />
-      </>
-    ),
-    family: (
-      <>
-        <path d="M8 11.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" />
-        <path d="M16.4 10.4a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6Z" />
-        <path d="M3.5 19.2c.8-3 2.2-4.5 4.5-4.5s3.7 1.5 4.5 4.5" />
-        <path d="M12.4 18.8c.8-2.3 2.1-3.5 4-3.5 1.8 0 3.1 1.2 4 3.5" />
-      </>
-    ),
-    calendar: (
-      <>
-        <path d="M6.4 5.8h11.2a2.4 2.4 0 0 1 2.4 2.4v9.4a2.4 2.4 0 0 1-2.4 2.4H6.4A2.4 2.4 0 0 1 4 17.6V8.2a2.4 2.4 0 0 1 2.4-2.4Z" />
-        <path d="M8 4v3.2M16 4v3.2M4.4 10h15.2" />
-        <path d="M8.2 13.4h.1M12 13.4h.1M15.8 13.4h.1M8.2 16.5h.1M12 16.5h.1" />
-      </>
-    ),
-  };
-
-  return (
-    <span className="nav-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24">{icons[type]}</svg>
-    </span>
-  );
-}
-
-function ThemeToggle({ theme, onThemeChange }) {
-  const nextTheme = theme === "dark" ? "light" : "dark";
-
-  return (
-    <button className="theme-toggle" type="button" onClick={() => onThemeChange(nextTheme)}>
-      <span className="sun-icon" aria-hidden="true">
-        <SunIcon />
-      </span>
-      <span className="moon-icon" aria-hidden="true">
-        <MoonIcon />
-      </span>
-      <strong>{theme === "dark" ? "Noche" : "Dia"}</strong>
-    </button>
-  );
-}
-
-function Mascot() {
-  return (
-    <div className="mascot-scene" aria-label="Mascota Nubi animada">
-      <div className="sparkle one" />
-      <div className="sparkle two" />
-      <div className="nubi">
-        <div className="ear left" />
-        <div className="ear right" />
-        <div className="face">
-          <span className="eye left" />
-          <span className="eye right" />
-          <span className="mouth" />
-          <span className="blush left" />
-          <span className="blush right" />
-        </div>
-        <div className="paw left" />
-        <div className="paw right" />
-      </div>
-      <div className="speech">Tengo 3 recordatorios para hoy</div>
-    </div>
-  );
-}
-
-function HomeSection({ records, users }) {
-  const upcoming = records.slice(0, 3);
-
-  return (
-    <>
-      <section id="inicio" className="hero-panel">
-        <div className="hero-copy">
-          <p className="pill">Resumen familiar</p>
-          <h2>Hoy y lo que se viene en la familia.</h2>
-          <p>
-            Nubi avisa lo importante, guarda resultados y deja mensajes cortitos para que nadie
-            tenga que buscar en tres chats distintos.
-          </p>
-        </div>
-        <Mascot />
-      </section>
-
-      <section className="panel today-panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Dia de hoy</p>
-            <h2>Prioridades</h2>
-          </div>
-          <a className="ghost-button" href="#calendario">
-            Ver todo
-          </a>
-        </div>
-
-        <div className="today-list">
-          {upcoming.map((item) => (
-            <article key={item.id}>
-              <time>{item.date}</time>
-              <div>
-                <strong>{item.title}</strong>
-                <p>
-                  {item.type} - {userDisplay(users, item.assignedTo)} - cargado por{" "}
-                  {userDisplay(users, item.createdBy)}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
-function ChatSection({ currentUser, messages, users, onSendMessage }) {
-  const [text, setText] = useState("");
-
-  function handleSubmit(event) {
-    event.preventDefault();
-    if (!text.trim()) return;
-    onSendMessage(text.trim());
-    setText("");
-  }
-
-  return (
-    <section id="chat" className="panel chat-panel">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Comunicacion</p>
-          <h2>Chat familiar</h2>
-        </div>
-        <span className="soft-note">Escribe {currentUser.name}</span>
-      </div>
-
-      <div className="messages">
-        {messages.map((message) => {
-          const author = getUser(users, message.authorId) ?? currentUser;
-          return (
-            <article
-              className={`message ${message.authorId === currentUser.id ? "mine" : ""}`}
-              key={message.id}
-            >
-              <MascotAvatar mascotId={author.mascotId} />
-              <div>
-                <strong>{author.name}</strong>
-                <p>{message.text}</p>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      <form className="message-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder="Escribir nota familiar"
-        />
-        <button className="primary-action" type="submit">
-          Enviar
-        </button>
-      </form>
-    </section>
-  );
-}
-
-function getDayNumber(dateText) {
-  const match = String(dateText).match(/\d{1,2}/);
-  return match ? Number(match[0]) : 1;
-}
-
-function CalendarSection({ records, users }) {
-  const [view, setView] = useState("week");
-  const sortedRecords = [...records].sort((a, b) => getRecordDate(a) - getRecordDate(b));
-  const anchorDate = sortedRecords[0] ? getRecordDate(sortedRecords[0]) : new Date();
-  const weekStart = getWeekStart(anchorDate);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
-  const weekRecords = sortedRecords.filter((record) => {
-    const date = getRecordDate(record);
-    return date >= weekStart && date < weekEnd;
-  });
-  const visibleRecords = view === "week" ? weekRecords : sortedRecords;
-  const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
-  const monthEnd = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
-  const firstOffset = (monthStart.getDay() + 6) % 7;
-  const monthCells = [
-    ...Array.from({ length: firstOffset }, () => null),
-    ...Array.from({ length: monthEnd.getDate() }, (_, index) => new Date(anchorDate.getFullYear(), anchorDate.getMonth(), index + 1)),
-  ];
-  const monthLabel = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(anchorDate);
-
-  return (
-    <section id="calendario" className="panel">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Lo que se viene</p>
-          <h2>Calendario familiar</h2>
-          <p className="calendar-range">
-            {view === "week"
-              ? `${formatRecordDate(weekStart)} - ${formatRecordDate(new Date(weekEnd.getTime() - 1))}`
-              : monthLabel}
-          </p>
-        </div>
-        <div className="segmented">
-          <button className={view === "week" ? "selected" : ""} type="button" onClick={() => setView("week")}>
-            Semana
-          </button>
-          <button className={view === "month" ? "selected" : ""} type="button" onClick={() => setView("month")}>
-            Mes
-          </button>
-        </div>
-      </div>
-
-      {view === "week" ? (
-        <div className="timeline">
-          {visibleRecords.map((item) => (
-            <article key={item.id}>
-              <time>{formatRecordDate(item.dateISO)}</time>
-              <div className={`event-marker ${item.type.toLowerCase()}`} />
-              <div>
-                <strong>{item.title}</strong>
-                <p>
-                  {userDisplay(users, item.assignedTo)} - cargo {userDisplay(users, item.createdBy)} -{" "}
-                  {item.detail}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="month-view">
-          <div className="month-weekdays">
-            {["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"].map((day) => (
-              <span key={day}>{day}</span>
-            ))}
-          </div>
-          <div className="month-grid">
-            {monthCells.map((day, index) => {
-              if (!day) {
-                return <article className="empty-day" key={`empty-${index}`} aria-hidden="true" />;
-              }
-              const dayRecords = sortedRecords.filter((record) => isSameDay(getRecordDate(record), day));
-              return (
-                <article className={dayRecords.length ? "has-events" : ""} key={day.toISOString()}>
-                  <strong>{day.getDate()}</strong>
-                  {dayRecords.slice(0, 2).map((record) => (
-                    <span className={`month-event ${record.type.toLowerCase()}`} key={record.id}>
-                      {record.title}
-                    </span>
-                  ))}
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function HistorySection({ records, users, selectedUserId, onSelectUser }) {
-  const childUsers = users.filter((user) => user.role === "Hija");
-  const activeUserId = selectedUserId ?? childUsers[0]?.id ?? users[0]?.id;
-  const userRecords = records.filter((record) => record.assignedTo === activeUserId);
-
-  return (
-    <section id="historial" className="panel history-card">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Historial</p>
-          <h2>Por hija</h2>
-        </div>
-        <div className="child-tabs">
-          {childUsers.map((user) => (
-            <button
-              className={activeUserId === user.id ? "selected" : ""}
-              type="button"
-              key={user.id}
-              onClick={() => onSelectUser(user.id)}
-            >
-              {user.name}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="history-grid">
-        {userRecords.map((record) => (
-          <article key={record.id}>
-            <strong>
-              {record.type} - {record.title}
-            </strong>
-            <p>
-              {record.result} - cargado por {userDisplay(users, record.createdBy)}
-            </p>
-          </article>
-        ))}
-        {userRecords.length === 0 && <p className="empty-state">Todavia no hay registros.</p>}
-      </div>
-    </section>
-  );
-}
-
-function ResultsSection({ records, users }) {
-  const doneRecords = records.filter((record) => record.result && record.result !== "Pendiente");
-
-  return (
-    <aside id="resultados" className="side-column">
-      {doneRecords.map((record) => (
-        <section className="panel result-card" key={record.id}>
-          <p className="eyebrow">{record.type}</p>
-          <h2>{record.title}</h2>
-          <div className="score-row">
-            <span>
-              {userDisplay(users, record.assignedTo)}
-              <small>cargo {userDisplay(users, record.createdBy)}</small>
-            </span>
-            <strong>{record.result}</strong>
-          </div>
-        </section>
-      ))}
-    </aside>
-  );
-}
-
-function EntrySection({ currentUser, users, onSaveRecord, onSaveDraft }) {
-  const assignableUsers = users.filter((user) => user.role === "Hija");
-  const [form, setForm] = useState({
-    type: "Voley",
-    assignedTo: assignableUsers[0]?.id ?? users[0]?.id,
-    dateISO: "2026-05-06T18:30",
-    title: "Club Norte vs San Martin",
-    result: "2 - 1",
-    detail: "Sofi jugo el tercer set completo",
-  });
-
-  function updateField(event) {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  }
-
-  function buildRecord(status = "saved") {
-    return {
-      id: crypto.randomUUID(),
-      ...form,
-      date: formatRecordDate(form.dateISO),
-      createdBy: currentUser.id,
-      status,
-    };
-  }
-
-  function handleSave(event) {
-    event.preventDefault();
-    onSaveRecord(buildRecord("saved"));
-    window.location.hash = "#calendario";
-  }
-
-  return (
-    <section id="cargar" className="panel entry-panel">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Nuevo dato</p>
-          <h2>Cargar y asignar</h2>
-        </div>
-        <button className="ghost-button" type="button" onClick={() => onSaveDraft(buildRecord("draft"))}>
-          Guardar borrador
-        </button>
-      </div>
-
-      <form className="entry-form" onSubmit={handleSave}>
-        <label>
-          <span>Tipo</span>
-          <select name="type" value={form.type} onChange={updateField}>
-            <option>Examen</option>
-            <option>Gimnasia</option>
-            <option>Voley</option>
-          </select>
-        </label>
-        <label>
-          <span>Asignado a</span>
-          <select name="assignedTo" value={form.assignedTo} onChange={updateField}>
-            {assignableUsers.map((user) => (
-              <option value={user.id} key={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Cargado por</span>
-          <input type="text" value={currentUser.name} readOnly />
-        </label>
-        <label>
-          <span>Fecha</span>
-          <input name="dateISO" type="datetime-local" value={form.dateISO} onChange={updateField} />
-        </label>
-        <label>
-          <span>Titulo</span>
-          <input name="title" type="text" value={form.title} onChange={updateField} />
-        </label>
-        <label>
-          <span>Resultado</span>
-          <input name="result" type="text" value={form.result} onChange={updateField} />
-        </label>
-        <label className="wide">
-          <span>Detalle</span>
-          <textarea name="detail" value={form.detail} onChange={updateField} />
-        </label>
-        <button className="primary-action wide" type="submit">
-          Guardar en historial
-        </button>
-      </form>
-    </section>
-  );
-}
-
-function UsersSection({
-  users,
-  currentUser,
-  selectedUserId,
-  invitations,
-  familyName,
-  onSelectUser,
-  onCreateUser,
-  onDeleteUser,
-  onMakeAdmin,
-  onCreateInvite,
-  onFamilyNameChange,
-}) {
-  const [form, setForm] = useState({
-    name: "",
-    role: "Hija",
-    status: "Nueva",
-    mascotId: "nubi",
-    isAdmin: false,
-  });
-  const selectedUser = getUser(users, selectedUserId) ?? users[0];
-  const currentUserIsAdmin = currentUser.isAdmin;
-  const [inviteForm, setInviteForm] = useState({
-    role: "Hija",
-    status: "Nueva",
-    mascotId: "nubi",
-  });
-  const [familyNameDraft, setFamilyNameDraft] = useState(familyName);
-
-  function handleChange(event) {
-    const { name, value, type, checked } = event.target;
-    setForm((current) => ({
-      ...current,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  }
-
-  function handleSubmit(event) {
-    event.preventDefault();
-    if (!form.name.trim()) return;
-
-    onCreateUser({
-      id: crypto.randomUUID(),
-      name: form.name.trim(),
-      role: form.role,
-      status: form.status.trim() || form.role,
-      mascotId: form.mascotId,
-      isAdmin: form.isAdmin,
-    });
-
-    setForm({ name: "", role: "Hija", status: "Nueva", mascotId: "nubi", isAdmin: false });
-  }
-
-  function updateInvite(event) {
-    setInviteForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  }
-
-  function submitInvite(event) {
-    event.preventDefault();
-    onCreateInvite(inviteForm);
-  }
-
-  function submitFamilyName(event) {
-    event.preventDefault();
-    if (familyNameDraft.trim()) {
-      onFamilyNameChange(familyNameDraft.trim());
+        );
+      case "mishi":
+        return (
+          <>
+            <path d="M 25 32 L 22 14 L 40 28 Z" fill={c.body} />
+            <path d="M 75 32 L 78 14 L 60 28 Z" fill={c.body} />
+            <path d="M 27 28 L 26 19 L 34 26 Z" fill={c.cheek} />
+            <path d="M 73 28 L 74 19 L 66 26 Z" fill={c.cheek} />
+          </>
+        );
+      case "toto":
+        return (
+          <>
+            <ellipse cx="22" cy="42" rx="10" ry="16" fill={c.accent} />
+            <ellipse cx="78" cy="42" rx="10" ry="16" fill={c.accent} />
+          </>
+        );
+      case "momo":
+        return (
+          <>
+            <path d="M 28 30 L 26 18 L 42 28 Z" fill={c.body} />
+            <path d="M 72 30 L 74 18 L 58 28 Z" fill={c.body} />
+          </>
+        );
+      default:
+        return null;
     }
-  }
+  };
+
+  const renderNose = () => {
+    if (name === "momo") {
+      return <ellipse cx="50" cy="62" rx="11" ry="7" fill={c.accent} opacity="0.7" />;
+    }
+    if (name === "mishi" || name === "pipo" || name === "toto") {
+      return <ellipse cx="50" cy="58" rx="3" ry="2" fill="#3a2a1f" />;
+    }
+    return null;
+  };
 
   return (
-    <section id="usuarios" className="panel users-panel">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Familia</p>
-          <h2>Integrantes</h2>
-        </div>
-        <span className="admin-badge">Admin: {currentUser.name}</span>
-      </div>
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: "block" }}>
+      <ellipse cx="50" cy="92" rx="28" ry="3.5" fill="#000" opacity="0.08" />
+      {renderDetails()}
+      <ellipse cx="50" cy="58" rx="32" ry="30" fill={c.body} />
+      <ellipse cx="50" cy="68" rx="20" ry="16" fill={c.belly} />
+      <circle cx="32" cy="60" r="5" fill={c.cheek} opacity="0.8" />
+      <circle cx="68" cy="60" r="5" fill={c.cheek} opacity="0.8" />
+      <ellipse cx="40" cy={eyeY} rx="2.6" ry={eyeRy} fill="#2b1d14" />
+      <ellipse cx="60" cy={eyeY} rx="2.6" ry={eyeRy} fill="#2b1d14" />
+      {!eyesClosed && (
+        <>
+          <circle cx="41" cy={eyeY - 1} r="0.8" fill="#fff" />
+          <circle cx="61" cy={eyeY - 1} r="0.8" fill="#fff" />
+        </>
+      )}
+      {renderNose()}
+      {name === "momo" ? (
+        <>
+          <ellipse cx="46" cy="62" rx="1.2" ry="0.8" fill="#3a2a1f" />
+          <ellipse cx="54" cy="62" rx="1.2" ry="0.8" fill="#3a2a1f" />
+        </>
+      ) : (
+        <path d={`M 45 64 Q 50 ${name === "soli" ? 70 : 68} 55 64`} stroke="#3a2a1f" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      )}
+    </svg>
+  );
+};
 
-      <div className="users-layout">
-        <div className="user-list">
-          {users.map((user) => (
-            <button
-              className={`user-card ${selectedUser?.id === user.id ? "selected" : ""}`}
-              type="button"
-              key={user.id}
-              onClick={() => onSelectUser(user.id)}
-            >
-              <MascotAvatar mascotId={user.mascotId} />
-              <span>
-                <strong>{user.name}</strong>
-                <small>
-                  {user.role} - {user.status} {user.isAdmin ? "- admin" : ""}
-                </small>
-              </span>
-            </button>
-          ))}
-        </div>
+const MASCOTS = ["nubi", "soli", "luma", "bubu", "pipo", "mishi", "toto", "momo"];
+const MASCOT_LABELS = {
+  nubi: "Nubi", soli: "Soli", luma: "Luma", bubu: "Bubu",
+  pipo: "Pipo", mishi: "Mishi", toto: "Toto", momo: "Momo",
+};
 
-        <div className="profile-panel">
-          {selectedUser && (
+// ----- Helpers -----------------------------------------------
+const fmtDate = (d) =>
+  d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+const sameDay = (a, b) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+const startOfWeek = (d) => {
+  const x = new Date(d);
+  const day = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - day);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+
+// ============================================================
+// MAIN APP
+// ============================================================
+export default function App() {
+  const [sessionKey, setSessionKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [stage, setStage] = useState("loading"); // loading | login | onboarding | nofamily | app
+  const [user, setUser] = useState(null);         // { userId, email, name, mascot, role }
+  const [familyData, setFamilyData] = useState(null);
+  const [tab, setTab] = useState("home");
+  const [activities, setActivities] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [family, setFamily] = useState([]);        // member list
+  const [invites, setInvites] = useState([]);
+  const [theme, setTheme] = useState(() => localStorage.getItem("cozy-theme") || "light");
+
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    localStorage.setItem("cozy-theme", next);
+  };
+
+  const isAdmin = user?.role === "admin";
+  const familyMascot = familyData?.mascot ?? "nubi";
+
+  // ── Bootstrap ──────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      setLoading(true);
+      try {
+        const cog = await getCurrentUser();
+        if (cancelled) return;
+
+        let profile = await db.getMyProfile(cog.userId);
+        if (!profile) {
+          profile = await db.createProfile({
+            userId: cog.userId,
+            email: cog.signInDetails?.loginId ?? cog.userId,
+            name: (cog.signInDetails?.loginId ?? cog.userId).split("@")[0],
+          });
+        }
+        if (cancelled) return;
+
+        const memberships = await db.getMyFamilies(cog.userId);
+
+        if (memberships.length > 0) {
+          const fam = await db.getFamily(memberships[0].familyId);
+          if (cancelled) return;
+          setFamilyData(fam);
+
+          setUser({
+            userId: cog.userId,
+            email: cog.signInDetails?.loginId ?? cog.userId,
+            name: profile.name,
+            mascot: profile.mascot ?? "nubi",
+            role: memberships[0].role,
+          });
+
+          await loadMembers(fam.id, cog.userId, cancelled);
+          const invs = await db.listFamilyInvites(fam.id);
+          if (!cancelled) {
+            setInvites(invs.map((i) => ({
+              id: i.id, code: i.code,
+              email: i.email || "—",
+              mascot: i.mascotSuggested || "nubi",
+              role: i.role,
+              createdAt: i.createdAt,
+            })));
+            const done = localStorage.getItem("cozy-onboarding-done");
+            setStage(done ? "app" : "onboarding");
+          }
+        } else {
+          if (!cancelled) {
+            setUser({
+              userId: cog.userId,
+              email: cog.signInDetails?.loginId ?? cog.userId,
+              name: profile.name,
+              mascot: profile.mascot ?? "nubi",
+              role: "miembro",
+            });
+            setStage("nofamily");
+          }
+        }
+      } catch {
+        if (!cancelled) setStage("login");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    run();
+    return () => { cancelled = true; };
+  }, [sessionKey]);
+
+  // ── Subscriptions ──────────────────────────────────────────
+  useEffect(() => {
+    if (!familyData?.id) return;
+    const subA = db.subscribeActivities(familyData.id, (items) => {
+      // Normalize: map ownerName → owner for ActivityRow compatibility
+      setActivities(items.map((a) => ({ ...a, owner: a.ownerName })));
+    });
+    const subM = db.subscribeMessages(familyData.id, (items) => {
+      // Normalize: map authorName → who, authorMascot → mascot for ChatView compatibility
+      const sorted = [...items].sort((a, b) =>
+        (a.createdAt || "").localeCompare(b.createdAt || ""),
+      );
+      setMessages(sorted.map((m) => ({
+        ...m,
+        who: m.authorName,
+        mascot: m.authorMascot,
+        t: m.createdAt ? new Date(m.createdAt).getTime() : Date.now(),
+      })));
+    });
+    return () => { subA.unsubscribe(); subM.unsubscribe(); };
+  }, [familyData?.id]);
+
+  async function loadMembers(familyId, myUserId, cancelled = false) {
+    const mems = await db.listFamilyMembers(familyId);
+    const profiles = await Promise.all(mems.map((m) => db.getMyProfile(m.userId)));
+    if (cancelled) return;
+    const normalized = mems.map((m, i) => ({
+      id: m.userId,
+      membershipId: m.id,
+      name: profiles[i]?.name ?? m.userId,
+      email: profiles[i]?.email ?? "",
+      mascot: profiles[i]?.mascot ?? "nubi",
+      role: m.role,
+      status: m.status ?? "activo",
+    }));
+    setFamily(normalized);
+    const mine = normalized.find((m) => m.id === myUserId);
+    if (mine) setUser((prev) => prev ? { ...prev, role: mine.role } : prev);
+  }
+
+  function refreshSession() {
+    setSessionKey((k) => k + 1);
+  }
+
+  // ── Login ──────────────────────────────────────────────────
+  const LoginView = () => {
+    const [mode, setMode] = useState("login");
+    const [email, setEmail] = useState("");
+    const [pass, setPass] = useState("");
+    const [code, setCode] = useState("");
+    const [err, setErr] = useState("");
+
+    const tryLogin = async () => {
+      setErr("");
+      try {
+        await signIn({ username: email.trim(), password: pass });
+        refreshSession();
+      } catch (e) {
+        setErr(e.message || "Email o contraseña incorrectos.");
+      }
+    };
+
+    const tryRegister = async () => {
+      setErr("");
+      try {
+        await signUp({
+          username: email.trim(),
+          password: pass,
+          options: { userAttributes: { email: email.trim() } },
+        });
+        setMode("confirm");
+      } catch (e) {
+        setErr(e.message || "Error al crear la cuenta.");
+      }
+    };
+
+    const tryConfirm = async () => {
+      setErr("");
+      try {
+        await confirmSignUp({ username: email.trim(), confirmationCode: code.trim() });
+        await signIn({ username: email.trim(), password: pass });
+        refreshSession();
+      } catch (e) {
+        setErr(e.message || "Código incorrecto.");
+      }
+    };
+
+    return (
+      <div className="login-wrap">
+        <button className="theme-toggle login-theme" onClick={toggleTheme} aria-label="cambiar tema">
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
+        <div className="paper-card login-card">
+          <div className="logo-row">
+            <div className="logo-blob"><Mascot name="nubi" size={56} /></div>
+            <div className="logo-blob blob-2"><Mascot name="soli" size={56} /></div>
+            <div className="logo-blob blob-3"><Mascot name="momo" size={56} /></div>
+          </div>
+          <h1 className="display-title">Cozy<span className="amp">&amp;</span>Casa</h1>
+          <p className="tagline">la familia, en un mismo nidito</p>
+
+          {mode === "login" && (
             <>
-              <MascotAvatar mascotId={selectedUser.mascotId} size="large" />
-              <div>
-                <p className="eyebrow">Vista personal</p>
-                <h2>{selectedUser.name}</h2>
-                <p>
-                  {selectedUser.role} - {selectedUser.status}
-                </p>
-              </div>
-              <div className="profile-actions">
-                <a className="ghost-button" href="#historial">
-                  Ver historial
-                </a>
-                {!selectedUser.isAdmin && currentUserIsAdmin && (
-                  <button className="ghost-button" type="button" onClick={() => onMakeAdmin(selectedUser.id)}>
-                    Hacer admin
-                  </button>
-                )}
-                {currentUserIsAdmin && selectedUser.id !== currentUser.id && (
-                  <button className="danger-button" type="button" onClick={() => onDeleteUser(selectedUser.id)}>
-                    Eliminar integrante
-                  </button>
-                )}
+              <label className="lbl">tu email</label>
+              <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vos@email.com" />
+              <label className="lbl">contraseña</label>
+              <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••" />
+              {err && <div className="err-pill">{err}</div>}
+              <button className="primary-btn" onClick={tryLogin}>entrar al nidito →</button>
+              <div className="alt-row">
+                <span>nuevo por acá?</span>
+                <button className="link-btn" onClick={() => { setMode("register"); setErr(""); }}>crear cuenta</button>
               </div>
             </>
           )}
+
+          {mode === "register" && (
+            <>
+              <label className="lbl">email</label>
+              <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vos@email.com" />
+              <label className="lbl">contraseña</label>
+              <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="mínimo 8 caracteres" />
+              {err && <div className="err-pill">{err}</div>}
+              <button className="primary-btn" onClick={tryRegister}>crear cuenta →</button>
+              <div className="alt-row">
+                <span>ya tenés?</span>
+                <button className="link-btn" onClick={() => { setMode("login"); setErr(""); }}>entrar</button>
+              </div>
+            </>
+          )}
+
+          {mode === "confirm" && (
+            <>
+              <p className="confirm-msg">te mandamos un código a <b>{email}</b></p>
+              <label className="lbl">código de confirmación</label>
+              <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" />
+              {err && <div className="err-pill">{err}</div>}
+              <button className="primary-btn" onClick={tryConfirm}>confirmar →</button>
+            </>
+          )}
+        </div>
+        <div className="login-foot">hecho con 🧶 para la familia</div>
+      </div>
+    );
+  };
+
+  // ── Onboarding ─────────────────────────────────────────────
+  const OnboardingView = () => {
+    const slides = [
+      { mascot: "nubi", title: "bienvenidx a Cozy&Casa", text: "el lugar donde todo lo de la familia vive cómodo: chats, agenda y novedades, todo en un mismo nidito." },
+      { mascot: "soli", title: "agenda familiar", text: "exámenes, partidos, gimnasia. todo en un solo lugar para que nadie se pierda nada." },
+      { mascot: "momo", title: "chat en tiempo real", text: "mandá mensajes, compartí resultados. todo actualizado para todos al instante." },
+    ];
+    const [i, setI] = useState(0);
+    const finish = () => {
+      localStorage.setItem("cozy-onboarding-done", "1");
+      setStage("app");
+    };
+
+    return (
+      <div className="onb-wrap">
+        <button className="skip-btn" onClick={finish}>saltar</button>
+        <div className="onb-stage">
+          <div className="onb-mascot-pad">
+            <div className="floaty"><Mascot name={slides[i].mascot} size={140} /></div>
+          </div>
+          <h2 className="onb-title">{slides[i].title}</h2>
+          <p className="onb-text">{slides[i].text}</p>
+        </div>
+        <div className="dots">
+          {slides.map((_, k) => <span key={k} className={`dot ${k === i ? "on" : ""}`} />)}
+        </div>
+        <div className="onb-actions">
+          <button className="ghost-btn" onClick={() => setI(Math.max(0, i - 1))} disabled={i === 0}>atrás</button>
+          <button className="primary-btn" onClick={() => { if (i < slides.length - 1) setI(i + 1); else finish(); }}>
+            {i === slides.length - 1 ? "empezar" : "siguiente"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ── No Family ──────────────────────────────────────────────
+  const NoFamilyView = () => {
+    const [view, setView] = useState("choose");
+    const [name, setName] = useState("");
+    const [mascot, setMascot] = useState("nubi");
+    const [code, setCode] = useState("");
+    const [err, setErr] = useState("");
+
+    const handleCreate = async () => {
+      if (!name.trim()) return;
+      setErr("");
+      try {
+        const fam = await db.createFamily({ name: name.trim(), mascot, createdBy: user.userId });
+        setFamilyData(fam);
+        setUser((prev) => prev ? { ...prev, role: "admin" } : prev);
+        await loadMembers(fam.id, user.userId);
+        localStorage.setItem("cozy-onboarding-done", "1");
+        setStage("app");
+      } catch (e) {
+        setErr(e.message || "Error al crear la familia.");
+      }
+    };
+
+    const handleJoin = async () => {
+      if (!code.trim()) return;
+      setErr("");
+      try {
+        await db.consumeInvite({ code: code.trim().toUpperCase(), userId: user.userId });
+        const memberships = await db.getMyFamilies(user.userId);
+        const fam = await db.getFamily(memberships[0].familyId);
+        setFamilyData(fam);
+        await loadMembers(fam.id, user.userId);
+        localStorage.setItem("cozy-onboarding-done", "1");
+        setStage("app");
+      } catch (e) {
+        setErr(e.message || "Código inválido o expirado.");
+      }
+    };
+
+    return (
+      <div className="login-wrap">
+        <button className="theme-toggle login-theme" onClick={toggleTheme} aria-label="cambiar tema">
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
+        <div className="paper-card login-card">
+          <div className="logo-row">
+            <div className="logo-blob"><Mascot name={user?.mascot || "nubi"} size={80} /></div>
+          </div>
+          <h1 className="display-title">hola, <span className="amp">{user?.name?.toLowerCase()}</span></h1>
+          <p className="tagline">todavía no estás en ningún nidito</p>
+
+          {view === "choose" && (
+            <>
+              <button className="primary-btn" style={{ marginTop: 8 }} onClick={() => setView("create")}>crear mi nidito →</button>
+              <button className="ghost-btn" style={{ marginTop: 12, width: "100%" }} onClick={() => setView("join")}>unirme con código</button>
+            </>
+          )}
+
+          {view === "create" && (
+            <>
+              <label className="lbl">nombre de la familia</label>
+              <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Familia Arias..." />
+              <label className="lbl">mascota del grupo</label>
+              <div className="mascot-grid">
+                {MASCOTS.map((m) => (
+                  <button key={m} className={`mascot-pick ${mascot === m ? "mp-on" : ""}`} onClick={() => setMascot(m)}>
+                    <Mascot name={m} size={44} />
+                    <span>{MASCOT_LABELS[m]}</span>
+                  </button>
+                ))}
+              </div>
+              {err && <div className="err-pill">{err}</div>}
+              <button className="primary-btn full" onClick={handleCreate}>crear nidito →</button>
+              <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>volver</button>
+            </>
+          )}
+
+          {view === "join" && (
+            <>
+              <label className="lbl">código de invitación</label>
+              <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="ABC-XYZ" style={{ textTransform: "uppercase" }} />
+              {err && <div className="err-pill">{err}</div>}
+              <button className="primary-btn full" onClick={handleJoin}>unirme →</button>
+              <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>volver</button>
+            </>
+          )}
+        </div>
+        <div className="login-foot">hecho con 🧶 para la familia</div>
+      </div>
+    );
+  };
+
+  // ── Home ───────────────────────────────────────────────────
+  const HomeView = () => {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const todays = activities.filter((a) => a.date === todayStr).sort((a, b) => a.time.localeCompare(b.time));
+    const upcoming = activities
+      .filter((a) => a.date > todayStr)
+      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+      .slice(0, 3);
+
+    return (
+      <div className="page">
+        <header className="hello-head">
+          <div>
+            <div className="kicker">{today.toLocaleDateString("es-AR", { weekday: "long" })}</div>
+            <h1 className="display-h1">hola, {user?.name?.toLowerCase() || "familia"}</h1>
+          </div>
+          <div className="head-actions">
+            <button className="theme-toggle" onClick={toggleTheme} aria-label="cambiar tema">
+              {theme === "light" ? "🌙" : "☀️"}
+            </button>
+            <div className="family-badge" onClick={() => setTab("perfil")}>
+              <Mascot name={familyMascot} size={48} />
+            </div>
+          </div>
+        </header>
+
+        <section className="strip">
+          {family.slice(0, 5).map((m) => (
+            <div key={m.id} className="strip-item">
+              <Mascot name={m.mascot} size={52} />
+              <span>{m.name}</span>
+            </div>
+          ))}
+        </section>
+
+        <section className="card-block">
+          <div className="block-head">
+            <h2 className="block-title">hoy en casa</h2>
+            <span className="count-pill">{todays.length}</span>
+          </div>
+          {todays.length === 0 ? (
+            <div className="empty-card">
+              <Mascot name="bubu" size={64} />
+              <p>nada en agenda para hoy. respirá tranqui 🌿</p>
+            </div>
+          ) : (
+            todays.map((a) => <ActivityRow key={a.id} a={a} />)
+          )}
+        </section>
+
+        <section className="card-block">
+          <div className="block-head">
+            <h2 className="block-title">se viene</h2>
+          </div>
+          {upcoming.length === 0 ? (
+            <div className="empty-card"><p>sin eventos próximos.</p></div>
+          ) : (
+            upcoming.map((a) => <ActivityRow key={a.id} a={a} />)
+          )}
+        </section>
+
+        <section className="card-block">
+          <div className="block-head">
+            <h2 className="block-title">últimos mensajes</h2>
+            <button className="link-btn" onClick={() => setTab("chat")}>ver todos</button>
+          </div>
+          {messages.slice(-2).map((m) => (
+            <div key={m.id} className="msg-mini">
+              <Mascot name={m.mascot || "nubi"} size={36} />
+              <div className="msg-mini-body">
+                <div className="msg-mini-who">{m.who}</div>
+                <div className="msg-mini-text">{m.text}</div>
+              </div>
+            </div>
+          ))}
+          {messages.length === 0 && <div className="empty-card"><p>todavía no hay mensajes 💬</p></div>}
+        </section>
+      </div>
+    );
+  };
+
+  // ── Activity Row ───────────────────────────────────────────
+  const ActivityRow = ({ a }) => {
+    const icons = { examen: "📝", voley: "🏐", gimnasia: "🤸" };
+    return (
+      <div className={`act-row act-${a.type}`}>
+        <div className="act-mascot"><Mascot name={a.mascot || "nubi"} size={44} /></div>
+        <div className="act-body">
+          <div className="act-top">
+            <span className="act-icon">{icons[a.type] || "📌"}</span>
+            <span className="act-title">{a.title}</span>
+          </div>
+          <div className="act-meta">
+            <span>{new Date(a.date).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+            <span className="dot-sep">·</span>
+            <span>{a.time}</span>
+            <span className="dot-sep">·</span>
+            <span className="act-owner">{a.owner || a.ownerName}</span>
+          </div>
+          {a.address && <div className="act-addr">📍 {a.address}</div>}
+          {a.note && <div className="act-note">{a.note}</div>}
+          {a.result && <div className="act-res">🏆 {a.result}</div>}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Agenda ─────────────────────────────────────────────────
+  const AgendaView = () => {
+    const [view, setView] = useState("dia");
+    const [cursor, setCursor] = useState(new Date());
+
+    const goToday = () => setCursor(new Date());
+    const move = (delta) => {
+      const d = new Date(cursor);
+      if (view === "dia") d.setDate(d.getDate() + delta);
+      if (view === "semana") d.setDate(d.getDate() + 7 * delta);
+      if (view === "mes") d.setMonth(d.getMonth() + delta);
+      setCursor(d);
+    };
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const isToday = sameDay(cursor, new Date());
+    const isThisWeek = view === "semana" && startOfWeek(cursor).getTime() === startOfWeek(today).getTime();
+    const isThisMonth = view === "mes" && cursor.getMonth() === today.getMonth() && cursor.getFullYear() === today.getFullYear();
+    const ctxLabel = view === "dia" ? (isToday ? "hoy" : "ir a hoy")
+      : view === "semana" ? (isThisWeek ? "esta semana" : "ir a esta semana")
+      : (isThisMonth ? "este mes" : "ir a este mes");
+
+    return (
+      <div className="page">
+        <header className="agenda-head">
+          <h1 className="display-h1">agenda</h1>
+          <button className={`ctx-btn ${(isToday || isThisWeek || isThisMonth) ? "ctx-on" : ""}`} onClick={goToday}>{ctxLabel}</button>
+        </header>
+
+        <div className="seg-control">
+          {["dia", "semana", "mes"].map((v) => (
+            <button key={v} className={`seg ${view === v ? "seg-on" : ""}`} onClick={() => setView(v)}>{v}</button>
+          ))}
         </div>
 
-        <form className="entry-form user-form" onSubmit={handleSubmit}>
-          <label>
-            <span>Nombre</span>
-            <input name="name" type="text" value={form.name} onChange={handleChange} placeholder="Ej: Abi" />
-          </label>
-          <label>
-            <span>Rol</span>
-            <select name="role" value={form.role} onChange={handleChange}>
-              <option>Padre</option>
-              <option>Madre</option>
-              <option>Hija</option>
-            </select>
-          </label>
-          <label>
-            <span>Estado visible</span>
-            <input
-              name="status"
-              type="text"
-              value={form.status}
-              onChange={handleChange}
-              placeholder="Ej: Colegio, Voley, Online"
-            />
-          </label>
-          <label>
-            <span>Mascota avatar</span>
-            <select name="mascotId" value={form.mascotId} onChange={handleChange}>
-              {mascotOptions.map((mascot) => (
-                <option value={mascot.id} key={mascot.id}>
-                  {mascot.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="checkbox-row wide">
-            <input name="isAdmin" type="checkbox" checked={form.isAdmin} onChange={handleChange} />
-            <span>Administrador del grupo</span>
-          </label>
-          <button className="primary-action wide" type="submit">
-            Crear usuario
-          </button>
-        </form>
+        <div className="nav-row">
+          <button className="round-btn" onClick={() => move(-1)}>‹</button>
+          <div className="nav-label">
+            {view === "dia" && fmtDate(cursor)}
+            {view === "semana" && (
+              <>
+                {startOfWeek(cursor).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                {" — "}
+                {addDays(startOfWeek(cursor), 6).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+              </>
+            )}
+            {view === "mes" && cursor.toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
+          </div>
+          <button className="round-btn" onClick={() => move(1)}>›</button>
+        </div>
 
-        {currentUserIsAdmin && (
-          <form className="entry-form invite-form" onSubmit={submitFamilyName}>
-            <div className="wide">
-              <p className="eyebrow">Grupo familiar</p>
-              <h2>Nombre del grupo</h2>
+        {view === "dia" && <DayView day={cursor} acts={activities} />}
+        {view === "semana" && <WeekView day={cursor} acts={activities} />}
+        {view === "mes" && <MonthView day={cursor} acts={activities} setCursor={setCursor} setView={setView} />}
+      </div>
+    );
+  };
+
+  const DayView = ({ day, acts }) => {
+    const ds = day.toISOString().slice(0, 10);
+    const todays = acts.filter((a) => a.date === ds).sort((a, b) => a.time.localeCompare(b.time));
+    if (todays.length === 0) {
+      return (
+        <div className="empty-card">
+          <Mascot name="bubu" size={64} />
+          <p>sin eventos para este día 🌿</p>
+        </div>
+      );
+    }
+    return <div className="day-list">{todays.map((a) => <ActivityRow key={a.id} a={a} />)}</div>;
+  };
+
+  const WeekView = ({ day, acts }) => {
+    const ws = startOfWeek(day);
+    const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+    return (
+      <div className="week-grid">
+        {days.map((d) => {
+          const ds = d.toISOString().slice(0, 10);
+          const dayActs = acts.filter((a) => a.date === ds);
+          const isT = sameDay(d, new Date());
+          return (
+            <div key={ds} className={`week-col ${isT ? "week-today" : ""}`}>
+              <div className="week-lbl">
+                <div className="week-dow">{d.toLocaleDateString("es-AR", { weekday: "short" })}</div>
+                <div className={`week-num ${isT ? "week-num-on" : ""}`}>{d.getDate()}</div>
+              </div>
+              {dayActs.map((a) => (
+                <div key={a.id} className={`week-chip week-${a.type}`}>
+                  {a.time} {a.title}
+                </div>
+              ))}
             </div>
-            <label className="wide">
-              <span>Nombre</span>
-              <input
-                type="text"
-                value={familyNameDraft}
-                onChange={(event) => setFamilyNameDraft(event.target.value)}
-              />
-            </label>
-            <button className="primary-action wide" type="submit">
-              Guardar nombre
+          );
+        })}
+      </div>
+    );
+  };
+
+  const MonthView = ({ day, acts, setCursor, setView }) => {
+    const year = day.getFullYear();
+    const month = day.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const startPad = (first.getDay() + 6) % 7;
+    const cells = [
+      ...Array.from({ length: startPad }, () => null),
+      ...Array.from({ length: last.getDate() }, (_, i) => new Date(year, month, i + 1)),
+    ];
+    return (
+      <div className="month-wrap">
+        <div className="month-head">
+          {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
+            <div key={d} className="month-dow">{d}</div>
+          ))}
+        </div>
+        <div className="month-grid">
+          {cells.map((d, idx) => {
+            if (!d) return <div key={`e-${idx}`} className="month-cell empty" />;
+            const ds = d.toISOString().slice(0, 10);
+            const dayActs = acts.filter((a) => a.date === ds);
+            const isT = sameDay(d, new Date());
+            return (
+              <div
+                key={ds}
+                className={`month-cell ${isT ? "month-today" : ""} ${dayActs.length ? "month-has" : ""}`}
+                onClick={() => { setCursor(d); setView("dia"); }}
+              >
+                <span className="month-num">{d.getDate()}</span>
+                {dayActs.slice(0, 2).map((a) => (
+                  <div key={a.id} className={`month-dot month-dot-${a.type}`} />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Chat ───────────────────────────────────────────────────
+  const ChatView = () => {
+    const [text, setText] = useState("");
+    const endRef = useRef(null);
+    useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+    const send = async () => {
+      if (!text.trim() || !familyData?.id) return;
+      const t = text.trim();
+      setText("");
+      await db.sendMessage({
+        familyId: familyData.id,
+        authorId: user.userId,
+        authorName: user.name,
+        authorMascot: user.mascot,
+        text: t,
+      });
+    };
+
+    return (
+      <div className="page chat-page">
+        <header className="chat-head">
+          <h1 className="display-h1">chat familiar</h1>
+          <div className="chat-pills">
+            {family.slice(0, 4).map((m) => <Mascot key={m.id} name={m.mascot} size={28} />)}
+          </div>
+        </header>
+        <div className="chat-stream">
+          {messages.map((m) => {
+            const mine = m.authorId === user?.userId;
+            return (
+              <div key={m.id} className={`bubble-row ${mine ? "mine" : ""}`}>
+                {!mine && <Mascot name={m.mascot || "nubi"} size={36} />}
+                <div className={`bubble ${mine ? "b-mine" : ""}`}>
+                  {!mine && <div className="b-who">{m.who}</div>}
+                  <div className="b-text">{m.text}</div>
+                  <div className="b-time">{new Date(m.t).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</div>
+                </div>
+              </div>
+            );
+          })}
+          {messages.length === 0 && (
+            <div className="empty-card" style={{ marginTop: 40 }}>
+              <Mascot name="momo" size={64} />
+              <p>todavía no hay mensajes. ¡empezá vos! 💬</p>
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
+        <div className="chat-input">
+          <input
+            className="cozy-input flat"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="escribí algo cozy..."
+            onKeyDown={(e) => e.key === "Enter" && send()}
+          />
+          <button className="send-btn" onClick={send}>↑</button>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Load Activity ──────────────────────────────────────────
+  const LoadView = () => {
+    const [type, setType] = useState(null);
+    const [form, setForm] = useState({});
+    const [done, setDone] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const reset = () => { setType(null); setForm({}); setDone(false); };
+
+    const save = async () => {
+      if (!familyData?.id || saving) return;
+      setSaving(true);
+      try {
+        const title = form.title || (
+          type === "examen" ? (form.subject || "Examen")
+          : type === "voley" ? `Voley vs ${form.rival || "?"}`
+          : "Gimnasia"
+        );
+        await db.createActivity({
+          familyId: familyData.id,
+          type,
+          title,
+          date: form.date || new Date().toISOString().slice(0, 10),
+          time: form.time || "09:00",
+          ownerId: user.userId,
+          ownerName: user.name,
+          mascot: user.mascot,
+          subject: form.subject,
+          note: form.note,
+          venue: form.venue,
+          rival: form.rival,
+          address: form.address,
+          result: form.result,
+          place: form.place,
+          scoreSuelo: form.suelo,
+          scoreViga: form.viga,
+          scoreParalelas: form.paralelas,
+          scoreSalto: form.salto,
+        });
+        setDone(true);
+      } catch (e) {
+        console.error("Error saving activity:", e);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const Field = ({ label, children }) => (
+      <div className="field">
+        <label className="lbl">{label}</label>
+        {children}
+      </div>
+    );
+
+    const upd = (k, v) => setForm({ ...form, [k]: v });
+
+    if (done) {
+      return (
+        <div className="page center-page">
+          <div className="success-card">
+            <div className="floaty"><Mascot name="momo" size={120} /></div>
+            <h2 className="display-h2">guardado!</h2>
+            <p>todos en la familia ya lo pueden ver.</p>
+            <button className="primary-btn" onClick={reset}>cargar otra</button>
+            <button className="ghost-btn" onClick={() => { reset(); setTab("agenda"); }}>ir a la agenda →</button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!type) {
+      return (
+        <div className="page">
+          <header>
+            <h1 className="display-h1">cargar algo</h1>
+            <p className="sub">qué tenemos hoy?</p>
+          </header>
+          <div className="type-grid">
+            <button className="type-card type-examen" onClick={() => setType("examen")}>
+              <div className="type-icon">📝</div>
+              <div className="type-name">examen</div>
+              <div className="type-mascot"><Mascot name="luma" size={56} /></div>
             </button>
-          </form>
+            <button className="type-card type-voley" onClick={() => setType("voley")}>
+              <div className="type-icon">🏐</div>
+              <div className="type-name">voley</div>
+              <div className="type-mascot"><Mascot name="soli" size={56} /></div>
+            </button>
+            <button className="type-card type-gimnasia" onClick={() => setType("gimnasia")}>
+              <div className="type-icon">🤸</div>
+              <div className="type-name">gimnasia</div>
+              <div className="type-mascot"><Mascot name="momo" size={56} /></div>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="page">
+        <header className="form-head">
+          <button className="back-btn" onClick={() => setType(null)}>← volver</button>
+          <h1 className="display-h1">{type}</h1>
+        </header>
+
+        <div className="form-card">
+          {type === "examen" && (
+            <>
+              <Field label="materia"><input className="cozy-input" value={form.subject || ""} onChange={(e) => upd("subject", e.target.value)} placeholder="matemática..." /></Field>
+              <div className="row-2">
+                <Field label="fecha"><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+                <Field label="hora"><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              </div>
+              <Field label="nota (opcional)"><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder="qué entra, tips..." /></Field>
+            </>
+          )}
+
+          {type === "voley" && (
+            <>
+              <div className="seg-control">
+                <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>local</button>
+                <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>visitante</button>
+              </div>
+              <Field label="club rival"><input className="cozy-input" value={form.rival || ""} onChange={(e) => upd("rival", e.target.value)} placeholder="River, Ferro..." /></Field>
+              <Field label="dirección"><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} placeholder="Av. Siempreviva 742" /></Field>
+              <div className="row-2">
+                <Field label="fecha"><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+                <Field label="hora"><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              </div>
+              <Field label="resultado (opcional)"><input className="cozy-input" value={form.result || ""} onChange={(e) => upd("result", e.target.value)} placeholder="3-1, ganamos!" /></Field>
+            </>
+          )}
+
+          {type === "gimnasia" && (
+            <>
+              <Field label="lugar / club"><input className="cozy-input" value={form.place || ""} onChange={(e) => upd("place", e.target.value)} placeholder="Club Norte" /></Field>
+              <Field label="dirección"><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} /></Field>
+              <div className="row-2">
+                <Field label="fecha"><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+                <Field label="hora"><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              </div>
+              <div className="scores-grid">
+                {["suelo", "viga", "paralelas", "salto"].map((k) => (
+                  <div key={k} className="score-cell">
+                    <label>{k}</label>
+                    <input className="cozy-input small" value={form[k] || ""} onChange={(e) => upd(k, e.target.value)} placeholder="—" />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button className="primary-btn full" onClick={save} disabled={saving}>
+            {saving ? "guardando..." : "guardar →"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Family Management ──────────────────────────────────────
+  const FamilySection = () => {
+    const [showInvite, setShowInvite] = useState(false);
+    const [editingMember, setEditingMember] = useState(null);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteRole, setInviteRole] = useState("miembro");
+    const [inviteMascot, setInviteMascot] = useState("nubi");
+    const [generatedCode, setGeneratedCode] = useState(null);
+    const [copied, setCopied] = useState(false);
+
+    const createInvite = async () => {
+      try {
+        const inv = await db.createInvite({
+          familyId: familyData.id,
+          email: inviteEmail || undefined,
+          role: inviteRole,
+          mascotSuggested: inviteMascot,
+          createdBy: user.userId,
+        });
+        const mapped = { id: inv.id, code: inv.code, email: inviteEmail || "—", mascot: inviteMascot, role: inviteRole };
+        setInvites((prev) => [...prev, mapped]);
+        setGeneratedCode(mapped);
+      } catch (e) {
+        console.error("Error creating invite:", e);
+      }
+    };
+
+    const closeInvite = () => {
+      setShowInvite(false);
+      setGeneratedCode(null);
+      setInviteEmail("");
+      setInviteRole("miembro");
+      setInviteMascot("nubi");
+      setCopied(false);
+    };
+
+    const copyCode = () => {
+      try {
+        navigator.clipboard?.writeText(generatedCode.code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch { /* noop */ }
+    };
+
+    const handleRemoveMember = async (memberId) => {
+      const member = family.find((m) => m.id === memberId);
+      if (member) {
+        await db.removeMember(member.membershipId);
+        await loadMembers(familyData.id, user.userId);
+      }
+      setEditingMember(null);
+    };
+
+    const handleUpdateRole = async (memberId, role) => {
+      const member = family.find((m) => m.id === memberId);
+      if (member) {
+        await db.changeMemberRole(member.membershipId, role);
+        await loadMembers(familyData.id, user.userId);
+      }
+      setEditingMember((prev) => prev ? { ...prev, role } : prev);
+    };
+
+    const handleCancelInvite = async (code) => {
+      const invite = invites.find((i) => i.code === code);
+      if (invite?.id) await db.cancelInvite(invite.id);
+      setInvites((prev) => prev.filter((i) => i.code !== code));
+    };
+
+    return (
+      <div className="form-card">
+        <div className="block-head">
+          <h2 className="block-title">tu familia</h2>
+          <span className="count-pill">{family.length}</span>
+        </div>
+
+        <div className="family-list">
+          {family.map((m) => (
+            <div key={m.id} className="fam-row">
+              <div className="fam-mascot"><Mascot name={m.mascot} size={44} /></div>
+              <div className="fam-body">
+                <div className="fam-name">
+                  {m.name}
+                  {m.role === "admin" && <span className="admin-tag">admin</span>}
+                </div>
+                <div className="fam-email">{m.email}</div>
+              </div>
+              {isAdmin && m.id !== user?.userId && (
+                <button className="fam-edit" onClick={() => setEditingMember(m)} aria-label="editar">⋯</button>
+              )}
+              {m.id === user?.userId && <span className="fam-you">vos</span>}
+            </div>
+          ))}
+        </div>
+
+        {invites.length > 0 && (
+          <>
+            <div className="invites-divider">invitaciones pendientes</div>
+            {invites.map((i) => (
+              <div key={i.code} className="invite-row">
+                <div className="invite-mascot"><Mascot name={i.mascot} size={36} blink={false} /></div>
+                <div className="invite-body">
+                  <div className="invite-code">{i.code}</div>
+                  <div className="invite-meta">{i.email} · {i.role}</div>
+                </div>
+                {isAdmin && (
+                  <button className="invite-cancel" onClick={() => handleCancelInvite(i.code)}>cancelar</button>
+                )}
+              </div>
+            ))}
+          </>
         )}
 
-        {currentUserIsAdmin && (
-          <form className="entry-form invite-form" onSubmit={submitInvite}>
-            <div className="wide">
-              <p className="eyebrow">Invitaciones</p>
-              <h2>Invitar al grupo</h2>
+        {isAdmin ? (
+          <button className="ghost-btn full add-member-btn" onClick={() => setShowInvite(true)}>
+            + invitar a alguien
+          </button>
+        ) : (
+          <p className="admin-only-note">sólo lxs admins pueden agregar miembros nuevos.</p>
+        )}
+
+        {showInvite && (
+          <div className="modal-back" onClick={closeInvite}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              {!generatedCode ? (
+                <>
+                  <div className="modal-mascot floaty"><Mascot name="momo" size={88} /></div>
+                  <h3 className="modal-title">invitar al nidito</h3>
+                  <p className="modal-sub">generamos un código único. quien lo use entra como parte de la familia.</p>
+                  <div className="field">
+                    <label className="lbl">email (opcional)</label>
+                    <input className="cozy-input" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="hermano@email.com" />
+                  </div>
+                  <label className="lbl">rol</label>
+                  <div className="seg-control">
+                    <button className={`seg ${inviteRole === "miembro" ? "seg-on" : ""}`} onClick={() => setInviteRole("miembro")}>miembro</button>
+                    <button className={`seg ${inviteRole === "admin" ? "seg-on" : ""}`} onClick={() => setInviteRole("admin")}>admin</button>
+                  </div>
+                  <label className="lbl">mascotita sugerida</label>
+                  <div className="mascot-grid">
+                    {MASCOTS.map((m) => (
+                      <button key={m} className={`mascot-pick ${inviteMascot === m ? "mp-on" : ""}`} onClick={() => setInviteMascot(m)}>
+                        <Mascot name={m} size={44} />
+                        <span>{MASCOT_LABELS[m]}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button className="primary-btn full" onClick={createInvite}>generar código →</button>
+                  <button className="ghost-btn full" onClick={closeInvite}>cancelar</button>
+                </>
+              ) : (
+                <>
+                  <div className="modal-mascot floaty"><Mascot name={generatedCode.mascot} size={100} /></div>
+                  <h3 className="modal-title">¡código listo!</h3>
+                  <p className="modal-sub">compartilo con quien quieras sumar.</p>
+                  <div className="code-display" onClick={copyCode}>
+                    <span className="code-text">{generatedCode.code}</span>
+                    <span className="code-copy">{copied ? "✓ copiado" : "tocá para copiar"}</span>
+                  </div>
+                  <div className="code-meta">
+                    <div><b>para:</b> {generatedCode.email}</div>
+                    <div><b>rol:</b> {generatedCode.role}</div>
+                  </div>
+                  <button className="primary-btn full" onClick={closeInvite}>listo</button>
+                </>
+              )}
             </div>
-            <label>
-              <span>Rol</span>
-              <select name="role" value={inviteForm.role} onChange={updateInvite}>
-                <option>Padre</option>
-                <option>Madre</option>
-                <option>Hija</option>
-              </select>
-            </label>
-            <label>
-              <span>Mascota sugerida</span>
-              <select name="mascotId" value={inviteForm.mascotId} onChange={updateInvite}>
-                {mascotOptions.map((mascot) => (
-                  <option value={mascot.id} key={mascot.id}>
-                    {mascot.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="wide">
-              <span>Estado inicial</span>
-              <input name="status" type="text" value={inviteForm.status} onChange={updateInvite} />
-            </label>
-            <button className="primary-action wide" type="submit">
-              Generar codigo
-            </button>
-            <div className="invite-list wide">
-              {invitations.map((invite) => (
-                <article key={invite.code}>
-                  <strong>{invite.code}</strong>
-                  <p>
-                    {invite.role} - {invite.memberStatus} - {invite.status === "open" ? "pendiente" : "usada"}
-                  </p>
-                </article>
-              ))}
+          </div>
+        )}
+
+        {editingMember && (
+          <div className="modal-back" onClick={() => setEditingMember(null)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-mascot"><Mascot name={editingMember.mascot} size={88} /></div>
+              <h3 className="modal-title">{editingMember.name}</h3>
+              <p className="modal-sub">{editingMember.email}</p>
+              <label className="lbl">rol</label>
+              <div className="seg-control">
+                <button className={`seg ${editingMember.role === "miembro" ? "seg-on" : ""}`}
+                  onClick={() => handleUpdateRole(editingMember.id, "miembro")}>miembro</button>
+                <button className={`seg ${editingMember.role === "admin" ? "seg-on" : ""}`}
+                  onClick={() => handleUpdateRole(editingMember.id, "admin")}>admin</button>
+              </div>
+              <button className="ghost-btn full" onClick={() => setEditingMember(null)}>cerrar</button>
+              <button className="danger-btn full" onClick={() => handleRemoveMember(editingMember.id)}>quitar del nidito</button>
             </div>
-          </form>
+          </div>
         )}
       </div>
-    </section>
-  );
-}
-
-function AuthScreen({ accounts, invitations, familyName, onLogin, onRegister }) {
-  const [mode, setMode] = useState("login");
-  const [message, setMessage] = useState("");
-  const [loginForm, setLoginForm] = useState({
-    email: "papa@casa.local",
-    password: "casa1234",
-  });
-  const [registerForm, setRegisterForm] = useState({
-    inviteCode: "",
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  function updateLogin(event) {
-    setLoginForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  }
-
-  function updateRegister(event) {
-    setRegisterForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  }
-
-  function submitLogin(event) {
-    event.preventDefault();
-    const account = accounts.find(
-      (item) =>
-        item.email.toLowerCase() === loginForm.email.trim().toLowerCase() &&
-        item.password === loginForm.password,
     );
+  };
 
-    if (!account) {
-      setMessage("No encontramos ese email y clave.");
-      return;
-    }
+  // ── Profile ────────────────────────────────────────────────
+  const ProfileView = () => {
+    const [name, setName] = useState(user?.name || "");
+    const [mascot, setMascot] = useState(user?.mascot || "nubi");
+    const [editingFamily, setEditingFamily] = useState(false);
 
-    onLogin(account.userId);
-  }
+    const save = async () => {
+      await db.updateProfile(user.userId, { name, mascot });
+      setUser((prev) => prev ? { ...prev, name, mascot } : prev);
+    };
 
-  function submitRegister(event) {
-    event.preventDefault();
-    const invite = invitations.find(
-      (item) =>
-        item.code.toUpperCase() === registerForm.inviteCode.trim().toUpperCase() &&
-        item.status === "open",
-    );
+    const handleFamilyMascot = async (m) => {
+      if (!familyData?.id) return;
+      const updated = await db.updateFamily(familyData.id, { mascot: m });
+      setFamilyData(updated);
+    };
 
-    if (!invite) {
-      setMessage("El codigo de invitacion no existe o ya fue usado.");
-      return;
-    }
+    const handleLogout = async () => {
+      await signOut();
+      setUser(null);
+      setFamilyData(null);
+      setFamily([]);
+      setActivities([]);
+      setMessages([]);
+      setInvites([]);
+      setTab("home");
+      setStage("login");
+    };
 
-    if (!registerForm.name.trim() || !registerForm.email.trim() || !registerForm.password.trim()) {
-      setMessage("Completa nombre, email y clave.");
-      return;
-    }
+    return (
+      <div className="page">
+        <header><h1 className="display-h1">tu perfil</h1></header>
 
-    if (accounts.some((account) => account.email.toLowerCase() === registerForm.email.trim().toLowerCase())) {
-      setMessage("Ese email ya tiene cuenta.");
-      return;
-    }
-
-    onRegister({
-      invite,
-      name: registerForm.name.trim(),
-      email: registerForm.email.trim(),
-      password: registerForm.password,
-    });
-  }
-
-  return (
-    <main className="auth-shell">
-      <section className="panel auth-card">
-        <div className="brand">
-          <span className="brand-mark">CN</span>
-          <div>
-            <p>Cozy Family Com</p>
-            <strong>{familyName}</strong>
+        <div className="profile-hero">
+          <div className="hero-mascot floaty"><Mascot name={mascot} size={140} /></div>
+          <div className="hero-info">
+            <div className="hero-name">{name || "sin nombre"}</div>
+            <div className="hero-email">{user?.email}</div>
+            <div className="role-pill">{user?.role || "miembro"}</div>
           </div>
         </div>
 
-        <div className="auth-tabs">
-          <button className={mode === "login" ? "selected" : ""} type="button" onClick={() => setMode("login")}>
-            Ingresar
-          </button>
-          <button className={mode === "register" ? "selected" : ""} type="button" onClick={() => setMode("register")}>
-            Registrarse
-          </button>
+        <div className="form-card">
+          <div className="field">
+            <label className="lbl">tu nombre</label>
+            <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <label className="lbl">tu mascotita</label>
+          <div className="mascot-grid">
+            {MASCOTS.map((m) => (
+              <button key={m} className={`mascot-pick ${mascot === m ? "mp-on" : ""}`} onClick={() => setMascot(m)}>
+                <Mascot name={m} size={56} />
+                <span>{MASCOT_LABELS[m]}</span>
+              </button>
+            ))}
+          </div>
+          <button className="primary-btn full" onClick={save}>guardar cambios</button>
         </div>
 
-        {mode === "login" ? (
-          <form className="entry-form auth-form" onSubmit={submitLogin}>
-            <label className="wide">
-              <span>Email</span>
-              <input name="email" type="email" value={loginForm.email} onChange={updateLogin} />
-            </label>
-            <label className="wide">
-              <span>Clave</span>
-              <input name="password" type="password" value={loginForm.password} onChange={updateLogin} />
-            </label>
-            <button className="primary-action wide" type="submit">
-              Entrar
-            </button>
-            <p className="helper-copy">Acceso inicial de prueba: papa@casa.local / casa1234</p>
-          </form>
-        ) : (
-          <form className="entry-form auth-form" onSubmit={submitRegister}>
-            <label className="wide">
-              <span>Codigo de invitacion</span>
-              <input name="inviteCode" type="text" value={registerForm.inviteCode} onChange={updateRegister} />
-            </label>
-            <label>
-              <span>Nombre</span>
-              <input name="name" type="text" value={registerForm.name} onChange={updateRegister} />
-            </label>
-            <label>
-              <span>Email</span>
-              <input name="email" type="email" value={registerForm.email} onChange={updateRegister} />
-            </label>
-            <label className="wide">
-              <span>Clave</span>
-              <input name="password" type="password" value={registerForm.password} onChange={updateRegister} />
-            </label>
-            <button className="primary-action wide" type="submit">
-              Crear cuenta
-            </button>
-          </form>
-        )}
-
-        {message && <p className="form-message">{message}</p>}
-      </section>
-    </main>
-  );
-}
-
-function BottomNav({ activeSection }) {
-  return (
-    <nav className="bottom-nav" aria-label="Navegacion principal">
-      <a className={activeSection === "inicio" ? "active" : ""} href="#inicio">
-        <NavIcon type="home" />
-        <span>Inicio</span>
-      </a>
-      <a className={activeSection === "chat" ? "active" : ""} href="#chat">
-        <NavIcon type="chat" />
-        <span>Chat</span>
-      </a>
-      <a className="add-slot" href="#cargar" aria-label="Cargar nuevo dato">
-        +
-      </a>
-      <a className={activeSection === "usuarios" ? "active" : ""} href="#usuarios">
-        <NavIcon type="family" />
-        <span>Familia</span>
-      </a>
-      <a className={activeSection === "calendario" ? "active" : ""} href="#calendario">
-        <NavIcon type="calendar" />
-        <span>Agenda</span>
-      </a>
-    </nav>
-  );
-}
-
-export default function App() {
-  const [activeSection, setActiveSection] = useState(() => window.location.hash.replace("#", "") || "inicio");
-  const [theme, setTheme] = useState(() => window.localStorage.getItem("casa-nube-theme") || "light");
-  const [familyName, setFamilyName] = useState(() => window.localStorage.getItem("casa-nube-family-name") || "Familia Arias");
-  const [users, setUsers] = useState(() => normalizeUsers(readStorage("casa-nube-users", initialUsers)));
-  const [accounts, setAccounts] = useState(() => readStorage("casa-nube-accounts", initialAccounts));
-  const [sessionUserId, setSessionUserId] = useState(() => window.localStorage.getItem("casa-nube-session-user"));
-  const [invitations, setInvitations] = useState(() => readStorage("casa-nube-invitations", []));
-  const [records, setRecords] = useState(() => normalizeRecords(readStorage("casa-nube-records", initialRecords)));
-  const [messages, setMessages] = useState(() => readStorage("casa-nube-messages", initialMessages));
-  const [drafts, setDrafts] = useState(() => readStorage("casa-nube-drafts", []));
-  const [selectedUserId, setSelectedUserId] = useState(() => window.localStorage.getItem("casa-nube-selected-user") || "papa");
-  const [historyUserId, setHistoryUserId] = useState("luli");
-
-  const currentUser = useMemo(
-    () => getUser(users, sessionUserId) ?? null,
-    [sessionUserId, users],
-  );
-
-  useEffect(() => {
-    function updateActiveSection() {
-      setActiveSection(window.location.hash.replace("#", "") || "inicio");
-    }
-
-    window.addEventListener("hashchange", updateActiveSection);
-    updateActiveSection();
-
-    return () => window.removeEventListener("hashchange", updateActiveSection);
-  }, []);
-
-  useEffect(() => {
-    document.body.dataset.theme = theme;
-    window.localStorage.setItem("casa-nube-theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-users", JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-family-name", familyName);
-  }, [familyName]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-accounts", JSON.stringify(accounts));
-  }, [accounts]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-invitations", JSON.stringify(invitations));
-  }, [invitations]);
-
-  useEffect(() => {
-    if (sessionUserId) {
-      window.localStorage.setItem("casa-nube-session-user", sessionUserId);
-    } else {
-      window.localStorage.removeItem("casa-nube-session-user");
-    }
-  }, [sessionUserId]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-records", JSON.stringify(records));
-  }, [records]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-messages", JSON.stringify(messages));
-  }, [messages]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-drafts", JSON.stringify(drafts));
-  }, [drafts]);
-
-  useEffect(() => {
-    window.localStorage.setItem("casa-nube-selected-user", selectedUserId);
-  }, [selectedUserId]);
-
-  function handleCreateUser(user) {
-    setUsers((current) => [...current, user]);
-    setSelectedUserId(user.id);
-  }
-
-  function handleLogin(userId) {
-    setSessionUserId(userId);
-    window.location.hash = "#inicio";
-  }
-
-  function handleLogout() {
-    setSessionUserId(null);
-  }
-
-  function handleRegister({ invite, name, email, password }) {
-    const user = {
-      id: crypto.randomUUID(),
-      name,
-      role: invite.role,
-      status: invite.memberStatus,
-      mascotId: invite.mascotId,
-      isAdmin: false,
-    };
-
-    setUsers((current) => [...current, user]);
-    setAccounts((current) => [...current, { id: crypto.randomUUID(), email, password, userId: user.id }]);
-    setInvitations((current) =>
-      current.map((item) =>
-        item.code === invite.code ? { ...item, status: "used", acceptedBy: user.id } : item,
-      ),
-    );
-    setSessionUserId(user.id);
-    setSelectedUserId(user.id);
-    window.location.hash = "#inicio";
-  }
-
-  function handleCreateInvite(inviteForm) {
-    setInvitations((current) => [
-      {
-        code: createInviteCode(),
-        role: inviteForm.role,
-        memberStatus: inviteForm.status,
-        mascotId: inviteForm.mascotId,
-        createdBy: currentUser.id,
-        createdAt: new Date().toISOString(),
-        status: "open",
-      },
-      ...current,
-    ]);
-  }
-
-  function handleDeleteUser(userId) {
-    setUsers((current) => current.filter((user) => user.id !== userId));
-    setRecords((current) => current.filter((record) => record.assignedTo !== userId && record.createdBy !== userId));
-    setMessages((current) => current.filter((message) => message.authorId !== userId));
-    setSelectedUserId("papa");
-  }
-
-  function handleMakeAdmin(userId) {
-    setUsers((current) =>
-      current.map((user) => ({
-        ...user,
-        isAdmin: user.id === userId ? true : user.isAdmin,
-      })),
-    );
-  }
-
-  function handleSaveRecord(record) {
-    setRecords((current) => [record, ...current]);
-  }
-
-  function handleSaveDraft(draft) {
-    setDrafts((current) => [draft, ...current]);
-  }
-
-  function handleSendMessage(text) {
-    setMessages((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        authorId: currentUser.id,
-        text,
-      },
-    ]);
-  }
-
-  if (!currentUser) {
-    return (
-      <AuthScreen
-        accounts={accounts}
-        invitations={invitations}
-        familyName={familyName}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-      />
-    );
-  }
-
-  return (
-    <>
-      <main className="app-shell app-shell-single">
-        <section className="workspace">
-          <header className="topbar">
-            <div className="brand compact-brand">
-              <span className="brand-mark">CN</span>
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">mascota de la familia</h2>
+            <button className="link-btn" onClick={() => setEditingFamily(!editingFamily)}>{editingFamily ? "listo" : "cambiar"}</button>
+          </div>
+          {!editingFamily ? (
+            <div className="family-current">
+              <Mascot name={familyMascot} size={88} />
               <div>
-                <p>Cozy Family Com</p>
-                <strong>{familyName}</strong>
+                <div className="hero-name">{MASCOT_LABELS[familyMascot] || familyMascot}</div>
+                <div className="hero-email">la mascota que nos representa</div>
               </div>
             </div>
-            <div className="top-actions">
-              <span className="soft-note">{currentUser.name}</span>
-              <ThemeToggle theme={theme} onThemeChange={setTheme} />
-              <a className="primary-action" href="#usuarios">
-                Integrantes
-              </a>
-              <button className="ghost-button logout-button" type="button" onClick={handleLogout}>
-                Salir
-              </button>
+          ) : (
+            <div className="mascot-grid">
+              {MASCOTS.map((m) => (
+                <button key={m} className={`mascot-pick ${familyMascot === m ? "mp-on" : ""}`} onClick={() => handleFamilyMascot(m)}>
+                  <Mascot name={m} size={56} />
+                  <span>{MASCOT_LABELS[m]}</span>
+                </button>
+              ))}
             </div>
-          </header>
+          )}
+        </div>
 
-          {activeSection === "inicio" && <HomeSection records={records} users={users} />}
-          {activeSection === "chat" && (
-            <ChatSection
-              currentUser={currentUser}
-              messages={messages}
-              users={users}
-              onSendMessage={handleSendMessage}
-            />
-          )}
-          {activeSection === "calendario" && <CalendarSection records={records} users={users} />}
-          {activeSection === "resultados" && <ResultsSection records={records} users={users} />}
-          {activeSection === "historial" && (
-            <HistorySection
-              records={records}
-              users={users}
-              selectedUserId={historyUserId}
-              onSelectUser={setHistoryUserId}
-            />
-          )}
-          {activeSection === "usuarios" && (
-            <UsersSection
-              users={users}
-              currentUser={currentUser}
-              selectedUserId={selectedUserId}
-              invitations={invitations}
-              familyName={familyName}
-              onSelectUser={setSelectedUserId}
-              onCreateUser={handleCreateUser}
-              onDeleteUser={handleDeleteUser}
-              onMakeAdmin={handleMakeAdmin}
-              onCreateInvite={handleCreateInvite}
-              onFamilyNameChange={setFamilyName}
-            />
-          )}
-          {activeSection === "cargar" && (
-            <EntrySection
-              currentUser={currentUser}
-              users={users}
-              onSaveRecord={handleSaveRecord}
-              onSaveDraft={handleSaveDraft}
-            />
-          )}
-        </section>
-      </main>
+        <div className="form-card permissions">
+          <h2 className="block-title">permisos y estado</h2>
+          <div className="perm-row"><span>estado</span><span className="perm-val ok">activo</span></div>
+          <div className="perm-row"><span>rol</span><span className="perm-val">{user?.role}</span></div>
+          <div className="perm-row"><span>familia</span><span className="perm-val">{familyData?.name}</span></div>
+        </div>
 
-      <BottomNav activeSection={activeSection} />
-    </>
+        <FamilySection />
+
+        <button className="logout-btn" onClick={handleLogout}>salir del nidito</button>
+      </div>
+    );
+  };
+
+  // ── Bottom Nav ─────────────────────────────────────────────
+  const Nav = () => {
+    const items = [
+      { id: "home",   label: "inicio",  icon: "🏠" },
+      { id: "chat",   label: "chat",    icon: "💬" },
+      { id: "cargar", label: "cargar",  icon: "✨", big: true },
+      { id: "perfil", label: "perfil",  icon: "🌸" },
+      { id: "agenda", label: "agenda",  icon: "📅" },
+    ];
+    return (
+      <nav className="bottom-nav">
+        {items.map((it) => (
+          <button
+            key={it.id}
+            className={`nav-item ${tab === it.id ? "nav-on" : ""} ${it.big ? "nav-big" : ""}`}
+            onClick={() => setTab(it.id)}
+          >
+            <span className="nav-icon">{it.icon}</span>
+            <span className="nav-lbl">{it.label}</span>
+          </button>
+        ))}
+      </nav>
+    );
+  };
+
+  // ── Render Root ────────────────────────────────────────────
+  if (loading || stage === "loading") {
+    return (
+      <div className="cozy-root" data-theme={theme}>
+        <div className="paper-bg" />
+        <div className="login-wrap">
+          <div className="floaty"><Mascot name="nubi" size={100} /></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cozy-root" data-theme={theme}>
+      <div className="paper-bg" />
+      {stage === "login"      && <LoginView />}
+      {stage === "onboarding" && <OnboardingView />}
+      {stage === "nofamily"   && <NoFamilyView />}
+      {stage === "app"        && (
+        <>
+          <main className="screen">
+            {tab === "home"   && <HomeView />}
+            {tab === "chat"   && <ChatView />}
+            {tab === "cargar" && <LoadView />}
+            {tab === "perfil" && <ProfileView />}
+            {tab === "agenda" && <AgendaView />}
+          </main>
+          <Nav />
+        </>
+      )}
+    </div>
   );
 }
