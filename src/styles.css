@@ -787,9 +787,14 @@
       .field { margin-bottom: 10px; }
       .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .row-2 > * { min-width: 0; }
-      .row-2 .cozy-input { padding-left: 10px; padding-right: 10px; font-size: 15px; }
       input[type="date"].cozy-input,
-      input[type="time"].cozy-input { min-width: 0; }
+      input[type="time"].cozy-input {
+        min-width: 0;
+        -webkit-text-fill-color: var(--ink);
+      }
+      @media (max-width: 480px) {
+        .row-2 { grid-template-columns: 1fr; }
+      }
       .scores-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
