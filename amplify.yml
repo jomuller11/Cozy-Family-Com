@@ -1,15 +1,10 @@
 version: 1
-backend:
-  phases:
-    build:
-      commands:
-        - npm install --no-fund --no-audit
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
     preBuild:
       commands:
         - npm install --no-fund --no-audit
+        - echo "$AMPLIFY_OUTPUTS" | base64 -d > amplify_outputs.json
     build:
       commands:
         - npm run build
