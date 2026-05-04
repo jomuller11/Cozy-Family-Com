@@ -16,3 +16,4 @@ const { lambda } = backend.pushHandler.resources;
 
 pushSubTable.grantReadWriteData(lambda);
 lambda.addEnvironment("PUSH_SUBSCRIPTION_TABLE", pushSubTable.tableName);
+lambda.addEnvironment("VAPID_PRIVATE_KEY", process.env.VAPID_PRIVATE_KEY ?? "");

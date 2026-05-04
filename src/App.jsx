@@ -159,7 +159,7 @@ const Mascot = ({ name, size = 64, blink = true }) => {
 };
 
 const VAPID_PUBLIC_KEY =
-  "BL58qKrnE_lI1GJUldhAQpj0XNMaUw3qMXQZEJdyc4JvGVJ8p2ls47WFL2RUFkim2v-sziM2FtcZy_NrqiP97fw";
+  "BMLv43bFoqZ9GkcF_P-JD4s2MY0DxDkPFV3RyicEhDC1B7EsyVcupMfCPRWQZsB9wU8pcxxdMFDgH5LDwPuGutI";
 
 function urlBase64ToUint8Array(b64) {
   const pad = "=".repeat((4 - (b64.length % 4)) % 4);

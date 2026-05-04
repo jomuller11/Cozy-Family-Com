@@ -5,8 +5,8 @@ export const pushHandler = defineFunction({
   entry: "./handler.ts",
   environment: {
     VAPID_PUBLIC_KEY:
-      "BL58qKrnE_lI1GJUldhAQpj0XNMaUw3qMXQZEJdyc4JvGVJ8p2ls47WFL2RUFkim2v-sziM2FtcZy_NrqiP97fw",
-    VAPID_PRIVATE_KEY: "ap3JZnMOz5I27T4WASZFmN29OUXiilf-fqM_p2tgAzg",
+      "BMLv43bFoqZ9GkcF_P-JD4s2MY0DxDkPFV3RyicEhDC1B7EsyVcupMfCPRWQZsB9wU8pcxxdMFDgH5LDwPuGutI",
     VAPID_SUBJECT: "mailto:josemuller11@gmail.com",
+    // VAPID_PRIVATE_KEY injected at deploy time from Amplify Console env var
   },
 });
