@@ -158,6 +158,15 @@ const Mascot = ({ name, size = 64, blink = true }) => {
   );
 };
 
+const VAPID_PUBLIC_KEY =
+  "BL58qKrnE_lI1GJUldhAQpj0XNMaUw3qMXQZEJdyc4JvGVJ8p2ls47WFL2RUFkim2v-sziM2FtcZy_NrqiP97fw";
+
+function urlBase64ToUint8Array(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
 const MASCOTS = ["nubi", "soli", "luma", "bubu", "pipo", "mishi", "toto", "momo"];
 const MASCOT_LABELS = {
   nubi: "Nubi", soli: "Soli", luma: "Luma", bubu: "Bubu",
@@ -764,6 +773,12 @@ const ChatView = () => {
       authorMascot: user.mascot,
       text: msg,
     });
+    db.sendPushNotification({
+      familyId: familyData.id,
+      title: user.name,
+      body: msg,
+      senderUserId: user.userId,
+    }).catch(() => {});
   };
 
   return (
@@ -868,6 +883,12 @@ const LoadView = () => {
         scoreParalelas: form.paralelas,
         scoreSalto: form.salto,
       });
+      db.sendPushNotification({
+        familyId: familyData.id,
+        title: user.name,
+        body: title,
+        senderUserId: user.userId,
+      }).catch(() => {});
       setDone(true);
     } catch (e) {
       setErr(e.message || t("error.generic"));
@@ -1423,6 +1444,10 @@ const ProfileView = () => {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileErr, setProfileErr] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
+  );
+  const [notifLoading, setNotifLoading] = useState(false);
 
   const save = async () => {
     setProfileErr("");
@@ -1467,6 +1492,45 @@ const ProfileView = () => {
       setJoinErr(e.message || t("profile.join.error"));
     } finally {
       setJoinLoading(false);
+    }
+  };
+
+  const subscribeNotifications = async () => {
+    setNotifLoading(true);
+    try {
+      const perm = await Notification.requestPermission();
+      setNotifPermission(perm);
+      if (perm !== "granted") return;
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      const { endpoint, keys: { p256dh, auth } } = sub.toJSON();
+      for (const { family: fam } of allFamilies) {
+        await db.savePushSubscription({ userId: user.userId, familyId: fam.id, endpoint, p256dh, auth });
+      }
+    } catch (e) {
+      console.error("Push subscribe error:", e);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  const unsubscribeNotifications = async () => {
+    setNotifLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+      for (const { family: fam } of allFamilies) {
+        await db.deletePushSubscription(user.userId, fam.id);
+      }
+      setNotifPermission("default");
+    } catch (e) {
+      console.error("Push unsubscribe error:", e);
+    } finally {
+      setNotifLoading(false);
     }
   };
 
@@ -1592,6 +1656,32 @@ const ProfileView = () => {
       </div>
 
       <FamilySection />
+
+      {notifPermission !== "unsupported" && (
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">{t("notif.title")}</h2>
+            {notifPermission === "granted" && <span className="fam-you">✓</span>}
+          </div>
+          {notifPermission === "granted" ? (
+            <>
+              <p className="sub">{t("notif.enabled")}</p>
+              <button className="ghost-btn full" onClick={unsubscribeNotifications} disabled={notifLoading}>
+                {notifLoading ? t("form.saving") : t("notif.disable")}
+              </button>
+            </>
+          ) : notifPermission === "denied" ? (
+            <p className="sub">{t("notif.denied")}</p>
+          ) : (
+            <>
+              <p className="sub">{t("notif.subtitle")}</p>
+              <button className="primary-btn full" onClick={subscribeNotifications} disabled={notifLoading}>
+                {notifLoading ? t("loading.creating") : t("notif.enable")}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <button className="logout-btn" onClick={handleLogout}>{t("profile.logout")}</button>
     </div>

@@ -277,3 +277,31 @@ export async function updateFamily(id, patch) {
   if (errors?.length) throw new Error(errors.map((e) => e.message).join(", "));
   return data;
 }
+
+// ─────────────────────────────────────────────────────────────
+// PUSH SUBSCRIPTIONS
+// ─────────────────────────────────────────────────────────────
+
+export async function savePushSubscription({ userId, familyId, endpoint, p256dh, auth }) {
+  // Replace any existing subscription for this user+family
+  const { data: existing } = await client.models.PushSubscription.listPushSubsByUser({ userId });
+  const old = existing?.find((s) => s.familyId === familyId);
+  if (old) {
+    await client.models.PushSubscription.delete({ id: old.id });
+  }
+  const { data, errors } = await client.models.PushSubscription.create({
+    userId, familyId, endpoint, p256dh, auth,
+  });
+  if (errors?.length) throw new Error(errors.map((e) => e.message).join(", "));
+  return data;
+}
+
+export async function deletePushSubscription(userId, familyId) {
+  const { data } = await client.models.PushSubscription.listPushSubsByUser({ userId });
+  const subs = data?.filter((s) => s.familyId === familyId) ?? [];
+  await Promise.all(subs.map((s) => client.models.PushSubscription.delete({ id: s.id })));
+}
+
+export async function sendPushNotification({ familyId, title, body, senderUserId }) {
+  await client.mutations.sendPushNotifications({ familyId, title, body, senderUserId });
+}

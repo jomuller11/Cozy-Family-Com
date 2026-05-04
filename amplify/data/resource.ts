@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { pushHandler } from "../functions/pushHandler/resource";
 
 /**
  * Cozy&Casa — modelo de datos
@@ -182,6 +183,40 @@ const schema = a.schema({
       allow.authenticated().to(["read", "create"]),
       allow.ownerDefinedIn("createdBy").to(["update", "delete"]),
     ]),
+
+  // ─────────────────────────────────────────────────────────────
+  // PUSH SUBSCRIPTION — suscripción web push por dispositivo
+  // ─────────────────────────────────────────────────────────────
+  PushSubscription: a
+    .model({
+      userId: a.string().required(),
+      familyId: a.string().required(),
+      endpoint: a.string().required(),
+      p256dh: a.string().required(),
+      auth: a.string().required(),
+    })
+    .secondaryIndexes((index) => [
+      index("userId").queryField("listPushSubsByUser"),
+      index("familyId").queryField("listPushSubsByFamily"),
+    ])
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId"),
+    ]),
+
+  // ─────────────────────────────────────────────────────────────
+  // CUSTOM MUTATION — enviar push a toda la familia
+  // ─────────────────────────────────────────────────────────────
+  sendPushNotifications: a
+    .mutation()
+    .arguments({
+      familyId: a.string().required(),
+      title: a.string().required(),
+      body: a.string().required(),
+      senderUserId: a.string().required(),
+    })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(pushHandler)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

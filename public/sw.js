@@ -15,6 +15,33 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("push", (event) => {
+  const data = event.data?.json() ?? {};
+  const title = data.title || "Cozy&Casa";
+  const options = {
+    body: data.body || "",
+    icon: "./icon.svg",
+    badge: "./icon.svg",
+    data: { url: data.url || "/" },
+    vibrate: [100, 50, 100],
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((list) => {
+        for (const c of list) {
+          if ("focus" in c) return c.focus();
+        }
+        return clients.openWindow(event.notification.data?.url || "/");
+      }),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
     return;

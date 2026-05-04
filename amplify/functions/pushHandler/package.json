@@ -1,0 +1,12 @@
+{
+  "name": "push-handler",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/web-push": "^3.6.3"
+  }
+}

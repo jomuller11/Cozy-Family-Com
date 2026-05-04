@@ -201,6 +201,15 @@ export const translations = {
     "family.cancel.invite": "cancelar",
     "family.kick.confirm":  "¿confirmás que querés quitar a {name}?",
 
+    // Notifications
+    "notif.title":    "notificaciones",
+    "notif.subtitle": "recibí alertas cuando la familia carga algo nuevo o manda un mensaje.",
+    "notif.enable":   "activar notificaciones",
+    "notif.disable":  "desactivar notificaciones",
+    "notif.enabled":  "notificaciones activadas en este dispositivo.",
+    "notif.denied":   "las notificaciones están bloqueadas. habilitálas en la configuración de tu navegador.",
+    "notif.unsupported": "tu navegador no soporta notificaciones.",
+
     // Language
     "lang.es": "ES",
     "lang.en": "EN",
@@ -407,6 +416,15 @@ export const translations = {
     "family.kick":          "remove from nest",
     "family.cancel.invite": "cancel",
     "family.kick.confirm":  "confirm you want to remove {name}?",
+
+    // Notifications
+    "notif.title":    "notifications",
+    "notif.subtitle": "get alerts when the family adds something new or sends a message.",
+    "notif.enable":   "enable notifications",
+    "notif.disable":  "disable notifications",
+    "notif.enabled":  "notifications enabled on this device.",
+    "notif.denied":   "notifications are blocked. enable them in your browser settings.",
+    "notif.unsupported": "your browser doesn't support notifications.",
 
     // Language
     "lang.es": "ES",
