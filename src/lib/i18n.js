@@ -64,6 +64,7 @@ export const translations = {
     "home.today.empty":     "nada en agenda para hoy. respirá tranqui 🌿",
     "home.upcoming":        "se viene",
     "home.upcoming.empty":  "sin eventos próximos.",
+    "home.upcoming.all":    "ver todos",
     "home.messages":        "últimos mensajes",
     "home.messages.all":    "ver todos",
     "home.messages.empty":  "todavía no hay mensajes 💬",
@@ -116,6 +117,17 @@ export const translations = {
     "form.score.paralelas":"paralelas",
     "form.score.salto":    "salto",
     "form.saving":         "guardando...",
+
+    // Loading states
+    "loading.entering":   "entrando...",
+    "loading.creating":   "creando...",
+    "loading.joining":    "uniéndome...",
+    "loading.confirming": "confirmando...",
+    "loading.generating": "generando...",
+
+    // Validation & errors
+    "validation.required": "completá los campos requeridos.",
+    "error.generic":        "algo salió mal, intentá de nuevo.",
 
     // Load
     "load.title":          "cargar algo",
@@ -187,6 +199,7 @@ export const translations = {
     "family.edit.role":     "rol",
     "family.kick":          "quitar del nidito",
     "family.cancel.invite": "cancelar",
+    "family.kick.confirm":  "¿confirmás que querés quitar a {name}?",
 
     // Language
     "lang.es": "ES",
@@ -258,6 +271,7 @@ export const translations = {
     "home.today.empty":     "nothing on the agenda today. take it easy 🌿",
     "home.upcoming":        "coming up",
     "home.upcoming.empty":  "no upcoming events.",
+    "home.upcoming.all":    "see all",
     "home.messages":        "latest messages",
     "home.messages.all":    "see all",
     "home.messages.empty":  "no messages yet 💬",
@@ -310,6 +324,17 @@ export const translations = {
     "form.score.paralelas":"bars",
     "form.score.salto":    "vault",
     "form.saving":         "saving...",
+
+    // Loading states
+    "loading.entering":   "entering...",
+    "loading.creating":   "creating...",
+    "loading.joining":    "joining...",
+    "loading.confirming": "confirming...",
+    "loading.generating": "generating...",
+
+    // Validation & errors
+    "validation.required": "please fill in the required fields.",
+    "error.generic":        "something went wrong, please try again.",
 
     // Load
     "load.title":          "add something",
@@ -381,6 +406,7 @@ export const translations = {
     "family.edit.role":     "role",
     "family.kick":          "remove from nest",
     "family.cancel.invite": "cancel",
+    "family.kick.confirm":  "confirm you want to remove {name}?",
 
     // Language
     "lang.es": "ES",

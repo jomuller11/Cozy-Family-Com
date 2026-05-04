@@ -206,19 +206,26 @@ const LoginView = () => {
   const [pass, setPass] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const tryLogin = async () => {
+    if (!email.trim() || !pass) { setErr(t("validation.required")); return; }
     setErr("");
+    setLoading(true);
     try {
       await signIn({ username: email.trim(), password: pass });
       refreshSession();
     } catch (e) {
       setErr(e.message || t("login.error.credentials"));
+    } finally {
+      setLoading(false);
     }
   };
 
   const tryRegister = async () => {
+    if (!email.trim() || !pass) { setErr(t("validation.required")); return; }
     setErr("");
+    setLoading(true);
     try {
       await signUp({
         username: email.trim(),
@@ -228,17 +235,23 @@ const LoginView = () => {
       setMode("confirm");
     } catch (e) {
       setErr(e.message || t("login.register.error"));
+    } finally {
+      setLoading(false);
     }
   };
 
   const tryConfirm = async () => {
+    if (!code.trim()) { setErr(t("validation.required")); return; }
     setErr("");
+    setLoading(true);
     try {
       await confirmSignUp({ username: email.trim(), confirmationCode: code.trim() });
       await signIn({ username: email.trim(), password: pass });
       refreshSession();
     } catch (e) {
       setErr(e.message || t("login.verify.error"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -262,11 +275,11 @@ const LoginView = () => {
         {mode === "login" && (
           <>
             <label className="lbl">{t("login.email")}</label>
-            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email.ph")} />
+            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email.ph")} onKeyDown={(e) => e.key === "Enter" && tryLogin()} />
             <label className="lbl">{t("login.password")}</label>
-            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("login.password.ph")} />
+            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("login.password.ph")} onKeyDown={(e) => e.key === "Enter" && tryLogin()} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn" onClick={tryLogin}>{t("login.submit")}</button>
+            <button className="primary-btn" onClick={tryLogin} disabled={loading}>{loading ? t("loading.entering") : t("login.submit")}</button>
             <div className="alt-row">
               <span>{t("login.new")}</span>
               <button className="link-btn" onClick={() => { setMode("register"); setErr(""); }}>{t("login.create")}</button>
@@ -277,11 +290,11 @@ const LoginView = () => {
         {mode === "register" && (
           <>
             <label className="lbl">{t("login.email")}</label>
-            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email.ph")} />
+            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email.ph")} onKeyDown={(e) => e.key === "Enter" && tryRegister()} />
             <label className="lbl">{t("login.password")}</label>
-            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("login.register.password.ph")} />
+            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("login.register.password.ph")} onKeyDown={(e) => e.key === "Enter" && tryRegister()} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn" onClick={tryRegister}>{t("login.register.submit")}</button>
+            <button className="primary-btn" onClick={tryRegister} disabled={loading}>{loading ? t("loading.creating") : t("login.register.submit")}</button>
             <div className="alt-row">
               <span>{t("login.register.have")}</span>
               <button className="link-btn" onClick={() => { setMode("login"); setErr(""); }}>{t("login.register.signin")}</button>
@@ -293,9 +306,9 @@ const LoginView = () => {
           <>
             <p className="confirm-msg">{t("login.verify.msg", { email })}</p>
             <label className="lbl">{t("login.verify.label")}</label>
-            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("login.verify.ph")} />
+            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("login.verify.ph")} onKeyDown={(e) => e.key === "Enter" && tryConfirm()} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn" onClick={tryConfirm}>{t("login.verify.submit")}</button>
+            <button className="primary-btn" onClick={tryConfirm} disabled={loading}>{loading ? t("loading.confirming") : t("login.verify.submit")}</button>
           </>
         )}
       </div>
@@ -353,10 +366,12 @@ const NoFamilyView = () => {
   const [mascot, setMascot] = useState("nubi");
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim()) { setErr(t("validation.required")); return; }
     setErr("");
+    setLoading(true);
     try {
       const fam = await db.createFamily({ name: name.trim(), mascot, createdBy: user.userId });
       setFamilyData(fam);
@@ -367,12 +382,15 @@ const NoFamilyView = () => {
       setStage("app");
     } catch (e) {
       setErr(e.message || t("nofamily.create.error"));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleJoin = async () => {
-    if (!code.trim()) return;
+    if (!code.trim()) { setErr(t("validation.required")); return; }
     setErr("");
+    setLoading(true);
     try {
       await db.consumeInvite({ code: code.trim().toUpperCase(), userId: user.userId });
       const memberships = await db.getMyFamilies(user.userId);
@@ -387,6 +405,8 @@ const NoFamilyView = () => {
       setStage("app");
     } catch (e) {
       setErr(e.message || t("nofamily.join.error"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -415,7 +435,7 @@ const NoFamilyView = () => {
         {view === "create" && (
           <>
             <label className="lbl">{t("nofamily.name.label")}</label>
-            <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("nofamily.name.ph")} />
+            <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("nofamily.name.ph")} onKeyDown={(e) => e.key === "Enter" && handleCreate()} />
             <label className="lbl">{t("nofamily.mascot")}</label>
             <div className="mascot-grid">
               {MASCOTS.map((m) => (
@@ -426,18 +446,18 @@ const NoFamilyView = () => {
               ))}
             </div>
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn full" onClick={handleCreate}>{t("nofamily.create.submit")}</button>
-            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>{t("nofamily.back")}</button>
+            <button className="primary-btn full" onClick={handleCreate} disabled={loading}>{loading ? t("loading.creating") : t("nofamily.create.submit")}</button>
+            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")} disabled={loading}>{t("nofamily.back")}</button>
           </>
         )}
 
         {view === "join" && (
           <>
             <label className="lbl">{t("nofamily.code.label")}</label>
-            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("nofamily.code.ph")} style={{ textTransform: "uppercase" }} />
+            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("nofamily.code.ph")} style={{ textTransform: "uppercase" }} onKeyDown={(e) => e.key === "Enter" && handleJoin()} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn full" onClick={handleJoin}>{t("nofamily.join.submit")}</button>
-            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>{t("nofamily.back")}</button>
+            <button className="primary-btn full" onClick={handleJoin} disabled={loading}>{loading ? t("loading.joining") : t("nofamily.join.submit")}</button>
+            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")} disabled={loading}>{t("nofamily.back")}</button>
           </>
         )}
       </div>
@@ -480,13 +500,14 @@ const ActivityRow = ({ a }) => {
 // ─────────────────────────────────────────────────────────────
 const HomeView = () => {
   const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t } = useApp();
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const todays = activities.filter((a) => a.date === todayStr).sort((a, b) => a.time.localeCompare(b.time));
-  const upcoming = activities
+  const allUpcoming = activities
     .filter((a) => a.date > todayStr)
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-    .slice(0, 3);
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const upcoming = showAllUpcoming ? allUpcoming : allUpcoming.slice(0, 3);
 
   return (
     <div className="page">
@@ -530,8 +551,15 @@ const HomeView = () => {
       </section>
 
       <section className="card-block">
-        <div className="block-head"><h2 className="block-title">{t("home.upcoming")}</h2></div>
-        {upcoming.length === 0 ? (
+        <div className="block-head">
+          <h2 className="block-title">{t("home.upcoming")}</h2>
+          {allUpcoming.length > 3 && (
+            <button className="link-btn" onClick={() => setShowAllUpcoming((v) => !v)}>
+              {showAllUpcoming ? t("close") : `${t("home.upcoming.all")} (${allUpcoming.length})`}
+            </button>
+          )}
+        </div>
+        {allUpcoming.length === 0 ? (
           <div className="empty-card"><p>{t("home.upcoming.empty")}</p></div>
         ) : (
           upcoming.map((a) => <ActivityRow key={a.id} a={a} />)
@@ -581,25 +609,27 @@ const WeekView = ({ day, acts }) => {
   const ws = startOfWeek(day);
   const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   return (
-    <div className="week-grid">
-      {days.map((d) => {
-        const ds = d.toISOString().slice(0, 10);
-        const dayActs = acts.filter((a) => a.date === ds);
-        const isT = sameDay(d, new Date());
-        return (
-          <div key={ds} className={`week-col ${isT ? "week-today" : ""}`}>
-            <div className="week-lbl">
-              <div className="week-dow">{d.toLocaleDateString(t("date.locale"), { weekday: "short" })}</div>
-              <div className={`week-num ${isT ? "week-num-on" : ""}`}>{d.getDate()}</div>
-            </div>
-            {dayActs.map((a) => (
-              <div key={a.id} className={`week-chip week-${a.type}`} onClick={() => setEditingActivity(a)}>
-                {a.time} {a.title}
+    <div className="week-scroll">
+      <div className="week-grid">
+        {days.map((d) => {
+          const ds = d.toISOString().slice(0, 10);
+          const dayActs = acts.filter((a) => a.date === ds);
+          const isT = sameDay(d, new Date());
+          return (
+            <div key={ds} className={`week-col ${isT ? "week-today" : ""}`}>
+              <div className="week-lbl">
+                <div className="week-dow">{d.toLocaleDateString(t("date.locale"), { weekday: "short" })}</div>
+                <div className={`week-num ${isT ? "week-num-on" : ""}`}>{d.getDate()}</div>
               </div>
-            ))}
-          </div>
-        );
-      })}
+              {dayActs.map((a) => (
+                <div key={a.id} className={`week-chip week-${a.type}`} onClick={() => setEditingActivity(a)}>
+                  {a.time} {a.title}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -617,28 +647,32 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
   ];
   const weekdays = t("agenda.weekdays");
   return (
-    <div className="month-wrap">
+    <div className="month-grid-wrap">
       <div className="month-head">
         {weekdays.map((d) => (
-          <div key={d} className="month-dow">{d}</div>
+          <div key={d} className="mh">{d}</div>
         ))}
       </div>
       <div className="month-grid">
         {cells.map((d, idx) => {
-          if (!d) return <div key={`e-${idx}`} className="month-cell empty" />;
+          if (!d) return <div key={`e-${idx}`} className="mc empty" />;
           const ds = d.toISOString().slice(0, 10);
           const dayActs = acts.filter((a) => a.date === ds);
           const isT = sameDay(d, new Date());
           return (
             <div
               key={ds}
-              className={`month-cell ${isT ? "month-today" : ""} ${dayActs.length ? "month-has" : ""}`}
+              className={`mc ${isT ? "mc-today" : ""}`}
               onClick={() => { setCursor(d); setView("dia"); }}
             >
-              <span className="month-num">{d.getDate()}</span>
-              {dayActs.slice(0, 2).map((a) => (
-                <div key={a.id} className={`month-dot month-dot-${a.type}`} />
-              ))}
+              <span className="mc-num">{d.getDate()}</span>
+              {dayActs.length > 0 && (
+                <div className="mc-dots">
+                  {dayActs.slice(0, 2).map((a) => (
+                    <div key={a.id} className={`mc-dot dot-${a.type}`} />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -792,12 +826,20 @@ const LoadView = () => {
   const [form, setForm] = useState({});
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
 
-  const reset = () => { setType(null); setForm({}); setDone(false); };
+  const reset = () => { setType(null); setForm({}); setDone(false); setErr(""); };
   const upd = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
   const save = async () => {
     if (!familyData?.id || saving) return;
+    const missing =
+      (type === "examen" && !form.subject?.trim()) ||
+      (type === "voley" && !form.rival?.trim()) ||
+      (type === "gimnasia" && !form.place?.trim()) ||
+      !form.date || !form.time;
+    if (missing) { setErr(t("validation.required")); return; }
+    setErr("");
     setSaving(true);
     try {
       const title = form.title || (
@@ -828,7 +870,7 @@ const LoadView = () => {
       });
       setDone(true);
     } catch (e) {
-      console.error("Error saving activity:", e);
+      setErr(e.message || t("error.generic"));
     } finally {
       setSaving(false);
     }
@@ -937,6 +979,7 @@ const LoadView = () => {
           </>
         )}
 
+        {err && <div className="err-pill">{err}</div>}
         <button className="primary-btn full" onClick={save} disabled={saving}>
           {saving ? t("form.saving") : t("load.save")}
         </button>
@@ -969,11 +1012,13 @@ const EditActivityView = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [err, setErr] = useState("");
 
   const upd = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
   const save = async () => {
     if (saving) return;
+    setErr("");
     setSaving(true);
     try {
       const title =
@@ -998,7 +1043,7 @@ const EditActivityView = () => {
       });
       setEditingActivity(null);
     } catch (e) {
-      console.error("Error updating activity:", e);
+      setErr(e.message || t("error.generic"));
     } finally {
       setSaving(false);
     }
@@ -1010,10 +1055,10 @@ const EditActivityView = () => {
       await db.deleteActivity(a.id);
       setEditingActivity(null);
     } catch (e) {
-      console.error("Error deleting activity:", e);
+      setErr(e.message || t("error.generic"));
+      setConfirmDelete(false);
     } finally {
       setDeleting(false);
-      setConfirmDelete(false);
     }
   };
 
@@ -1083,7 +1128,8 @@ const EditActivityView = () => {
           </>
         )}
 
-        <button className="primary-btn full" onClick={save} disabled={saving}>
+        {err && <div className="err-pill">{err}</div>}
+        <button className="primary-btn full" onClick={save} disabled={saving || deleting}>
           {saving ? t("form.saving") : t("edit.save")}
         </button>
 
@@ -1098,7 +1144,7 @@ const EditActivityView = () => {
             </div>
           </div>
         ) : (
-          <button className="ghost-btn full delete-ghost" onClick={() => setConfirmDelete(true)}>
+          <button className="ghost-btn full delete-ghost" onClick={() => setConfirmDelete(true)} disabled={saving || deleting}>
             {t("edit.delete")}
           </button>
         )}
@@ -1119,8 +1165,15 @@ const FamilySection = () => {
   const [inviteMascot, setInviteMascot] = useState("nubi");
   const [generatedCode, setGeneratedCode] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [removingMember, setRemovingMember] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
+  const [cancelingInvite, setCancelingInvite] = useState(null);
+  const [confirmKick, setConfirmKick] = useState(false);
+  const [familyErr, setFamilyErr] = useState("");
 
   const createInvite = async () => {
+    setInviteLoading(true);
     try {
       const inv = await db.createInvite({
         familyId: familyData.id,
@@ -1133,7 +1186,9 @@ const FamilySection = () => {
       setInvites((prev) => [...prev, mapped]);
       setGeneratedCode(mapped);
     } catch (e) {
-      console.error("Error creating invite:", e);
+      setFamilyErr(e.message || t("error.generic"));
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -1155,27 +1210,51 @@ const FamilySection = () => {
   };
 
   const handleRemoveMember = async (memberId) => {
-    const member = family.find((m) => m.id === memberId);
-    if (member) {
-      await db.removeMember(member.membershipId);
-      await loadMembers(familyData.id, user.userId);
+    setRemovingMember(true);
+    setFamilyErr("");
+    try {
+      const member = family.find((m) => m.id === memberId);
+      if (member) {
+        await db.removeMember(member.membershipId);
+        await loadMembers(familyData.id, user.userId);
+      }
+      setEditingMember(null);
+      setConfirmKick(false);
+    } catch (e) {
+      setFamilyErr(e.message || t("error.generic"));
+    } finally {
+      setRemovingMember(false);
     }
-    setEditingMember(null);
   };
 
   const handleUpdateRole = async (memberId, role) => {
-    const member = family.find((m) => m.id === memberId);
-    if (member) {
-      await db.changeMemberRole(member.membershipId, role);
-      await loadMembers(familyData.id, user.userId);
+    setUpdatingRole(true);
+    setFamilyErr("");
+    try {
+      const member = family.find((m) => m.id === memberId);
+      if (member) {
+        await db.changeMemberRole(member.membershipId, role);
+        await loadMembers(familyData.id, user.userId);
+      }
+      setEditingMember((prev) => prev ? { ...prev, role } : prev);
+    } catch (e) {
+      setFamilyErr(e.message || t("error.generic"));
+    } finally {
+      setUpdatingRole(false);
     }
-    setEditingMember((prev) => prev ? { ...prev, role } : prev);
   };
 
   const handleCancelInvite = async (code) => {
-    const invite = invites.find((i) => i.code === code);
-    if (invite?.id) await db.cancelInvite(invite.id);
-    setInvites((prev) => prev.filter((i) => i.code !== code));
+    setCancelingInvite(code);
+    try {
+      const invite = invites.find((i) => i.code === code);
+      if (invite?.id) await db.cancelInvite(invite.id);
+      setInvites((prev) => prev.filter((i) => i.code !== code));
+    } catch (e) {
+      setFamilyErr(e.message || t("error.generic"));
+    } finally {
+      setCancelingInvite(null);
+    }
   };
 
   return (
@@ -1215,7 +1294,9 @@ const FamilySection = () => {
                 <div className="invite-meta">{i.email} · {i.role}</div>
               </div>
               {isAdmin && (
-                <button className="invite-cancel" onClick={() => handleCancelInvite(i.code)}>{t("family.cancel.invite")}</button>
+                <button className="invite-cancel" onClick={() => handleCancelInvite(i.code)} disabled={cancelingInvite === i.code}>
+                  {cancelingInvite === i.code ? "…" : t("family.cancel.invite")}
+                </button>
               )}
             </div>
           ))}
@@ -1256,8 +1337,9 @@ const FamilySection = () => {
                     </button>
                   ))}
                 </div>
-                <button className="primary-btn full" onClick={createInvite}>{t("family.invite.gen")}</button>
-                <button className="ghost-btn full" onClick={closeInvite}>{t("cancel")}</button>
+                {familyErr && <div className="err-pill">{familyErr}</div>}
+                <button className="primary-btn full" onClick={createInvite} disabled={inviteLoading}>{inviteLoading ? t("loading.generating") : t("family.invite.gen")}</button>
+                <button className="ghost-btn full" onClick={closeInvite} disabled={inviteLoading}>{t("cancel")}</button>
               </>
             ) : (
               <>
@@ -1280,20 +1362,38 @@ const FamilySection = () => {
       )}
 
       {editingMember && (
-        <div className="modal-back" onClick={() => setEditingMember(null)}>
+        <div className="modal-back" onClick={() => { setEditingMember(null); setConfirmKick(false); setFamilyErr(""); }}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-mascot"><Mascot name={editingMember.mascot} size={88} /></div>
             <h3 className="modal-title">{editingMember.name}</h3>
             <p className="modal-sub">{editingMember.email}</p>
-            <label className="lbl">{t("family.edit.role")}</label>
-            <div className="seg-control">
-              <button className={`seg ${editingMember.role === "miembro" ? "seg-on" : ""}`}
-                onClick={() => handleUpdateRole(editingMember.id, "miembro")}>{t("profile.role.member")}</button>
-              <button className={`seg ${editingMember.role === "admin" ? "seg-on" : ""}`}
-                onClick={() => handleUpdateRole(editingMember.id, "admin")}>{t("profile.role.admin")}</button>
-            </div>
-            <button className="ghost-btn full" onClick={() => setEditingMember(null)}>{t("close")}</button>
-            <button className="danger-btn full" onClick={() => handleRemoveMember(editingMember.id)}>{t("family.kick")}</button>
+            {!confirmKick ? (
+              <>
+                <label className="lbl">{t("family.edit.role")}</label>
+                <div className="seg-control">
+                  <button className={`seg ${editingMember.role === "miembro" ? "seg-on" : ""}`}
+                    onClick={() => handleUpdateRole(editingMember.id, "miembro")} disabled={updatingRole}>{t("profile.role.member")}</button>
+                  <button className={`seg ${editingMember.role === "admin" ? "seg-on" : ""}`}
+                    onClick={() => handleUpdateRole(editingMember.id, "admin")} disabled={updatingRole}>{t("profile.role.admin")}</button>
+                </div>
+                {familyErr && <div className="err-pill">{familyErr}</div>}
+                <button className="ghost-btn full" onClick={() => { setEditingMember(null); setFamilyErr(""); }} disabled={updatingRole}>{t("close")}</button>
+                <button className="danger-btn full" onClick={() => setConfirmKick(true)} disabled={updatingRole}>{t("family.kick")}</button>
+              </>
+            ) : (
+              <>
+                <div className="delete-confirm">
+                  <p>{t("family.kick.confirm", { name: editingMember.name })}</p>
+                  <div className="delete-confirm-btns">
+                    <button className="danger-btn" onClick={() => handleRemoveMember(editingMember.id)} disabled={removingMember}>
+                      {removingMember ? t("form.saving") : t("edit.delete.yes")}
+                    </button>
+                    <button className="ghost-btn" onClick={() => setConfirmKick(false)} disabled={removingMember}>{t("cancel")}</button>
+                  </div>
+                </div>
+                {familyErr && <div className="err-pill">{familyErr}</div>}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1320,10 +1420,21 @@ const ProfileView = () => {
   const [joinCode, setJoinCode] = useState("");
   const [joinErr, setJoinErr] = useState("");
   const [showJoin, setShowJoin] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileErr, setProfileErr] = useState("");
+  const [joinLoading, setJoinLoading] = useState(false);
 
   const save = async () => {
-    await db.updateProfile(user.userId, { name, mascot });
-    setUser((prev) => prev ? { ...prev, name, mascot } : prev);
+    setProfileErr("");
+    setProfileSaving(true);
+    try {
+      await db.updateProfile(user.userId, { name, mascot });
+      setUser((prev) => prev ? { ...prev, name, mascot } : prev);
+    } catch (e) {
+      setProfileErr(e.message || t("error.generic"));
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   const handleFamilyMascot = async (m) => {
@@ -1341,8 +1452,9 @@ const ProfileView = () => {
   };
 
   const handleJoinAnother = async () => {
-    if (!joinCode.trim()) return;
+    if (!joinCode.trim()) { setJoinErr(t("validation.required")); return; }
     setJoinErr("");
+    setJoinLoading(true);
     try {
       await db.consumeInvite({ code: joinCode.trim().toUpperCase(), userId: user.userId });
       const memberships = await db.getMyFamilies(user.userId);
@@ -1353,6 +1465,8 @@ const ProfileView = () => {
       setShowJoin(false);
     } catch (e) {
       setJoinErr(e.message || t("profile.join.error"));
+    } finally {
+      setJoinLoading(false);
     }
   };
 
@@ -1396,7 +1510,8 @@ const ProfileView = () => {
             </button>
           ))}
         </div>
-        <button className="primary-btn full" onClick={save}>{t("profile.save")}</button>
+        {profileErr && <div className="err-pill">{profileErr}</div>}
+        <button className="primary-btn full" onClick={save} disabled={profileSaving}>{profileSaving ? t("form.saving") : t("profile.save")}</button>
       </div>
 
       {/* Mis familias */}
@@ -1432,11 +1547,12 @@ const ProfileView = () => {
               onChange={(e) => setJoinCode(e.target.value)}
               placeholder={t("profile.join.ph")}
               style={{ textTransform: "uppercase" }}
+              onKeyDown={(e) => e.key === "Enter" && handleJoinAnother()}
             />
             {joinErr && <div className="err-pill">{joinErr}</div>}
             <div className="row-2" style={{ marginTop: 8 }}>
-              <button className="ghost-btn" onClick={() => { setShowJoin(false); setJoinCode(""); setJoinErr(""); }}>{t("cancel")}</button>
-              <button className="primary-btn" onClick={handleJoinAnother}>{t("profile.join.submit")}</button>
+              <button className="ghost-btn" onClick={() => { setShowJoin(false); setJoinCode(""); setJoinErr(""); }} disabled={joinLoading}>{t("cancel")}</button>
+              <button className="primary-btn" onClick={handleJoinAnother} disabled={joinLoading}>{joinLoading ? t("loading.joining") : t("profile.join.submit")}</button>
             </div>
           </div>
         )}

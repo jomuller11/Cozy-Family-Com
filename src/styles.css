@@ -573,7 +573,7 @@
         gap: 12px;
       }
       .round-btn {
-        width: 42px; height: 42px;
+        width: 44px; height: 44px;
         border-radius: 50%;
         border: 2px solid var(--line);
         background: var(--cream);
@@ -616,9 +616,10 @@
       .tl-row .act-row { flex: 1; margin-bottom: 0; }
 
       /* week grid */
-      .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; overflow-x: auto; }
+      .week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+      .week-grid { display: grid; grid-template-columns: repeat(7, minmax(72px, 1fr)); gap: 6px; min-width: 504px; }
       .week-col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-      .week-lbl { text-align: center; margin-bottom: 6px; }
+      .week-lbl { display: flex; flex-direction: column; align-items: center; margin-bottom: 6px; }
       .week-dow { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.06em; }
       .week-num { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: var(--ink); }
       .week-num-on { background: var(--ink); color: var(--cream); border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
@@ -673,9 +674,9 @@
         position: relative;
         transition: transform 0.15s;
       }
-      .mc:hover { transform: scale(1.05); }
+      .mc:active { opacity: 0.7; transform: scale(0.96); }
       .mc.empty { background: transparent; border: none; cursor: default; }
-      .mc.empty:hover { transform: none; }
+      .mc.empty:active { opacity: 1; transform: none; }
       .mc-num { font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px; color: var(--ink); }
       .mc-today { background: var(--ink); border-color: var(--ink); }
       .mc-today .mc-num { color: var(--cream); }
@@ -830,6 +831,7 @@
         padding-bottom: 0;
         padding-left: 10px;
         padding-right: 6px;
+        font-size: 16px;
         -webkit-text-fill-color: var(--ink);
       }
       .scores-grid {
@@ -1359,7 +1361,7 @@
         display: block;
         font-family: 'Fraunces', serif;
         font-weight: 800;
-        font-size: 36px;
+        font-size: clamp(24px, 8vw, 36px);
         letter-spacing: 0.15em;
         line-height: 1;
         position: relative;
@@ -1424,7 +1426,7 @@
         color: var(--paper);
         border-color: var(--peach-deep);
       }
-      .cozy-root[data-theme="dark"] .b-mine .b-time { color: rgba(255,255,255,0.7); }
+      .cozy-root[data-theme="dark"] .b-mine .b-time { color: rgba(0,0,0,0.55); }
       .cozy-root[data-theme="dark"] .role-pill { color: var(--paper); }
       .cozy-root[data-theme="dark"] .admin-tag { color: var(--paper); }
       .cozy-root[data-theme="dark"] .fam-you { color: var(--paper); }
