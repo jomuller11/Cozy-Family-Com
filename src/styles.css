@@ -448,6 +448,19 @@
         position: relative;
         overflow: hidden;
       }
+      .act-row-clickable {
+        cursor: pointer;
+        transition: transform 0.12s, box-shadow 0.12s;
+      }
+      .act-row-clickable:active {
+        transform: scale(0.98);
+      }
+      @media (hover: hover) {
+        .act-row-clickable:hover {
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+          border-color: var(--ink-soft);
+        }
+      }
       .act-row::before {
         content: "";
         position: absolute;
@@ -601,6 +614,25 @@
         background: var(--line);
       }
       .tl-row .act-row { flex: 1; margin-bottom: 0; }
+
+      /* week grid */
+      .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; overflow-x: auto; }
+      .week-col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+      .week-lbl { text-align: center; margin-bottom: 6px; }
+      .week-dow { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.06em; }
+      .week-num { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: var(--ink); }
+      .week-num-on { background: var(--ink); color: var(--cream); border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+      .week-today .week-dow { color: var(--peach-deep); }
+      .week-chip {
+        font-size: 10px; font-weight: 700; padding: 3px 5px;
+        border-radius: 6px; overflow: hidden; white-space: nowrap;
+        text-overflow: ellipsis; cursor: pointer;
+        transition: opacity 0.12s;
+      }
+      .week-chip:active { opacity: 0.7; }
+      .week-examen { background: var(--lavender); color: var(--ink); }
+      .week-voley  { background: var(--peach); color: var(--ink); }
+      .week-gimnasia { background: var(--berry); color: #fff; }
 
       /* week */
       .week-stack { display: flex; flex-direction: column; gap: 12px; }
@@ -1232,6 +1264,44 @@
         font-family: inherit;
         font-weight: 800;
         cursor: pointer;
+      }
+
+      /* ===== EDIT ACTIVITY ===== */
+      .act-owner-strip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 4px 16px;
+      }
+      .act-owner-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--ink-soft);
+      }
+      .delete-ghost {
+        margin-top: 10px;
+        color: var(--danger);
+        border-color: transparent;
+        opacity: 0.7;
+      }
+      .delete-confirm {
+        margin-top: 14px;
+        background: var(--cream);
+        border: 1.5px solid var(--danger);
+        border-radius: 18px;
+        padding: 16px;
+        text-align: center;
+      }
+      .delete-confirm p {
+        margin: 0 0 12px;
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--ink);
+      }
+      .delete-confirm-btns {
+        display: flex;
+        gap: 10px;
+        flex-direction: column;
       }
 
       /* ===== INVITE CODE DISPLAY ===== */

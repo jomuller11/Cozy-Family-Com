@@ -426,9 +426,10 @@ const NoFamilyView = () => {
 // ACTIVITY ROW
 // ─────────────────────────────────────────────────────────────
 const ActivityRow = ({ a }) => {
+  const { setEditingActivity } = useApp();
   const icons = { examen: "📝", voley: "🏐", gimnasia: "🤸" };
   return (
-    <div className={`act-row act-${a.type}`}>
+    <div className={`act-row act-${a.type} act-row-clickable`} onClick={() => setEditingActivity(a)}>
       <div className="act-mascot"><Mascot name={a.mascot || "nubi"} size={44} /></div>
       <div className="act-body">
         <div className="act-top">
@@ -551,6 +552,7 @@ const DayView = ({ day, acts }) => {
 };
 
 const WeekView = ({ day, acts }) => {
+  const { setEditingActivity } = useApp();
   const ws = startOfWeek(day);
   const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   return (
@@ -566,7 +568,7 @@ const WeekView = ({ day, acts }) => {
               <div className={`week-num ${isT ? "week-num-on" : ""}`}>{d.getDate()}</div>
             </div>
             {dayActs.map((a) => (
-              <div key={a.id} className={`week-chip week-${a.type}`}>
+              <div key={a.id} className={`week-chip week-${a.type}`} onClick={() => setEditingActivity(a)}>
                 {a.time} {a.title}
               </div>
             ))}
@@ -899,6 +901,161 @@ const LoadView = () => {
         <button className="primary-btn full" onClick={save} disabled={saving}>
           {saving ? "guardando..." : "guardar →"}
         </button>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// EDIT ACTIVITY VIEW
+// ─────────────────────────────────────────────────────────────
+const EditActivityView = () => {
+  const { editingActivity, setEditingActivity } = useApp();
+  const a = editingActivity;
+  const [form, setForm] = useState({
+    date: a.date || "",
+    time: a.time || "",
+    subject: a.subject || "",
+    note: a.note || "",
+    venue: a.venue || "",
+    rival: a.rival || "",
+    address: a.address || "",
+    result: a.result || "",
+    place: a.place || "",
+    suelo: a.scoreSuelo || "",
+    viga: a.scoreViga || "",
+    paralelas: a.scoreParalelas || "",
+    salto: a.scoreSalto || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const upd = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const title =
+        a.type === "examen" ? (form.subject || a.title)
+        : a.type === "voley" ? `Voley vs ${form.rival || "?"}`
+        : a.title;
+      await db.updateActivity(a.id, {
+        title,
+        date: form.date,
+        time: form.time,
+        subject: form.subject || null,
+        note: form.note || null,
+        venue: form.venue || null,
+        rival: form.rival || null,
+        address: form.address || null,
+        result: form.result || null,
+        place: form.place || null,
+        scoreSuelo: form.suelo || null,
+        scoreViga: form.viga || null,
+        scoreParalelas: form.paralelas || null,
+        scoreSalto: form.salto || null,
+      });
+      setEditingActivity(null);
+    } catch (e) {
+      console.error("Error updating activity:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await db.deleteActivity(a.id);
+      setEditingActivity(null);
+    } catch (e) {
+      console.error("Error deleting activity:", e);
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
+  return (
+    <div className="page">
+      <header className="form-head">
+        <button className="back-btn" onClick={() => setEditingActivity(null)}>← volver</button>
+        <h1 className="display-h1">{a.type}</h1>
+      </header>
+
+      <div className="act-owner-strip">
+        <Mascot name={a.mascot || "nubi"} size={32} />
+        <span className="act-owner-name">{a.ownerName || a.owner}</span>
+      </div>
+
+      <div className="form-card">
+        {a.type === "examen" && (
+          <>
+            <Field label="materia"><input className="cozy-input" value={form.subject} onChange={(e) => upd("subject", e.target.value)} placeholder="matemática..." /></Field>
+            <div className="row-2">
+              <Field label="fecha"><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label="hora"><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <Field label="nota (opcional)"><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder="qué entra, tips..." /></Field>
+          </>
+        )}
+
+        {a.type === "voley" && (
+          <>
+            <div className="seg-control">
+              <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>local</button>
+              <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>visitante</button>
+            </div>
+            <Field label="club rival"><input className="cozy-input" value={form.rival} onChange={(e) => upd("rival", e.target.value)} placeholder="River, Ferro..." /></Field>
+            <Field label="dirección"><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} placeholder="Av. Siempreviva 742" /></Field>
+            <div className="row-2">
+              <Field label="fecha"><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label="hora"><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <Field label="resultado (opcional)"><input className="cozy-input" value={form.result} onChange={(e) => upd("result", e.target.value)} placeholder="3-1, ganamos!" /></Field>
+          </>
+        )}
+
+        {a.type === "gimnasia" && (
+          <>
+            <Field label="lugar / club"><input className="cozy-input" value={form.place} onChange={(e) => upd("place", e.target.value)} placeholder="Club Norte" /></Field>
+            <Field label="dirección"><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} /></Field>
+            <div className="row-2">
+              <Field label="fecha"><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label="hora"><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <div className="scores-grid">
+              {["suelo", "viga", "paralelas", "salto"].map((k) => (
+                <div key={k} className="score-cell">
+                  <label>{k}</label>
+                  <input className="cozy-input small" value={form[k]} onChange={(e) => upd(k, e.target.value)} placeholder="—" />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <button className="primary-btn full" onClick={save} disabled={saving}>
+          {saving ? "guardando..." : "guardar cambios →"}
+        </button>
+
+        {confirmDelete ? (
+          <div className="delete-confirm">
+            <p>¿seguro que querés eliminar esta actividad?</p>
+            <div className="delete-confirm-btns">
+              <button className="danger-btn" onClick={handleDelete} disabled={deleting}>
+                {deleting ? "eliminando..." : "sí, eliminar"}
+              </button>
+              <button className="ghost-btn" onClick={() => setConfirmDelete(false)}>cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button className="ghost-btn full delete-ghost" onClick={() => setConfirmDelete(true)}>
+            eliminar actividad
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1280,7 +1437,7 @@ const ProfileView = () => {
 // NAV
 // ─────────────────────────────────────────────────────────────
 const Nav = () => {
-  const { tab, setTab } = useApp();
+  const { tab, setTab, editingActivity, setEditingActivity } = useApp();
   const items = [
     { id: "home",   label: "inicio",  icon: "🏠" },
     { id: "chat",   label: "chat",    icon: "💬" },
@@ -1288,13 +1445,17 @@ const Nav = () => {
     { id: "perfil", label: "perfil",  icon: "🌸" },
     { id: "agenda", label: "agenda",  icon: "📅" },
   ];
+  const handleNav = (id) => {
+    if (editingActivity) setEditingActivity(null);
+    setTab(id);
+  };
   return (
     <nav className="bottom-nav">
       {items.map((it) => (
         <button
           key={it.id}
-          className={`nav-item ${tab === it.id ? "nav-on" : ""} ${it.big ? "nav-big" : ""}`}
-          onClick={() => setTab(it.id)}
+          className={`nav-item ${tab === it.id && !editingActivity ? "nav-on" : ""} ${it.big ? "nav-big" : ""}`}
+          onClick={() => handleNav(it.id)}
         >
           <span className="nav-icon">{it.icon}</span>
           <span className="nav-lbl">{it.label}</span>
@@ -1315,6 +1476,7 @@ export default function App() {
   const [familyData, setFamilyData] = useState(null);
   const [allFamilies, setAllFamilies] = useState([]);
   const [tab, setTab] = useState("home");
+  const [editingActivity, setEditingActivity] = useState(null);
   const [activities, setActivities] = useState([]);
   const [messages, setMessages] = useState([]);
   const [family, setFamily] = useState([]);
@@ -1459,6 +1621,7 @@ export default function App() {
     activities, messages,
     invites, setInvites,
     tab, setTab,
+    editingActivity, setEditingActivity,
     theme, toggleTheme,
     stage, setStage,
     isAdmin, familyMascot,
@@ -1486,11 +1649,17 @@ export default function App() {
         {stage === "app"        && (
           <>
             <main className="screen">
-              {tab === "home"   && <HomeView />}
-              {tab === "chat"   && <ChatView />}
-              {tab === "cargar" && <LoadView />}
-              {tab === "perfil" && <ProfileView />}
-              {tab === "agenda" && <AgendaView />}
+              {editingActivity ? (
+                <EditActivityView />
+              ) : (
+                <>
+                  {tab === "home"   && <HomeView />}
+                  {tab === "chat"   && <ChatView />}
+                  {tab === "cargar" && <LoadView />}
+                  {tab === "perfil" && <ProfileView />}
+                  {tab === "agenda" && <AgendaView />}
+                </>
+              )}
             </main>
             <Nav />
           </>
