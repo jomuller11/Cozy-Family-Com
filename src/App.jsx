@@ -7,6 +7,7 @@ import {
   signUp,
 } from "aws-amplify/auth";
 import * as db from "./lib/data";
+import { t as i18nT } from "./lib/i18n";
 
 // ─────────────────────────────────────────────────────────────
 // APP CONTEXT — evita definir componentes dentro de App(),
@@ -163,8 +164,8 @@ const MASCOT_LABELS = {
   pipo: "Pipo", mishi: "Mishi", toto: "Toto", momo: "Momo",
 };
 
-const fmtDate = (d) =>
-  d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+const fmtDate = (d, locale = "es-AR") =>
+  d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
 const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -179,10 +180,27 @@ const startOfWeek = (d) => {
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// LANG TOGGLE
+// ─────────────────────────────────────────────────────────────
+const LangToggle = () => {
+  const { lang, setLang } = useApp();
+  return (
+    <button
+      className="lang-toggle"
+      onClick={() => setLang(lang === "es" ? "en" : "es")}
+      aria-label="change language"
+    >
+      {lang === "es" ? "EN" : "ES"}
+    </button>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────────────────────────
 const LoginView = () => {
-  const { refreshSession, toggleTheme, theme } = useApp();
+  const { refreshSession, toggleTheme, theme, t } = useApp();
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -195,7 +213,7 @@ const LoginView = () => {
       await signIn({ username: email.trim(), password: pass });
       refreshSession();
     } catch (e) {
-      setErr(e.message || "Email o contraseña incorrectos.");
+      setErr(e.message || t("login.error.credentials"));
     }
   };
 
@@ -209,7 +227,7 @@ const LoginView = () => {
       });
       setMode("confirm");
     } catch (e) {
-      setErr(e.message || "Error al crear la cuenta.");
+      setErr(e.message || t("login.register.error"));
     }
   };
 
@@ -220,15 +238,18 @@ const LoginView = () => {
       await signIn({ username: email.trim(), password: pass });
       refreshSession();
     } catch (e) {
-      setErr(e.message || "Código incorrecto.");
+      setErr(e.message || t("login.verify.error"));
     }
   };
 
   return (
     <div className="login-wrap">
-      <button className="theme-toggle login-theme" onClick={toggleTheme} aria-label="cambiar tema">
-        {theme === "light" ? "🌙" : "☀️"}
-      </button>
+      <div className="login-top-actions">
+        <button className="theme-toggle login-theme" onClick={toggleTheme} aria-label={t("theme.toggle")}>
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
+        <LangToggle />
+      </div>
       <div className="paper-card login-card">
         <div className="logo-row">
           <div className="logo-blob"><Mascot name="nubi" size={56} /></div>
@@ -236,49 +257,49 @@ const LoginView = () => {
           <div className="logo-blob blob-3"><Mascot name="momo" size={56} /></div>
         </div>
         <h1 className="display-title">Cozy<span className="amp">&amp;</span>Casa</h1>
-        <p className="tagline">la familia, en un mismo nidito</p>
+        <p className="tagline">{t("login.tagline")}</p>
 
         {mode === "login" && (
           <>
-            <label className="lbl">tu email</label>
-            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vos@email.com" />
-            <label className="lbl">contraseña</label>
-            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••" />
+            <label className="lbl">{t("login.email")}</label>
+            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email.ph")} />
+            <label className="lbl">{t("login.password")}</label>
+            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("login.password.ph")} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn" onClick={tryLogin}>entrar al nidito →</button>
+            <button className="primary-btn" onClick={tryLogin}>{t("login.submit")}</button>
             <div className="alt-row">
-              <span>nuevo por acá?</span>
-              <button className="link-btn" onClick={() => { setMode("register"); setErr(""); }}>crear cuenta</button>
+              <span>{t("login.new")}</span>
+              <button className="link-btn" onClick={() => { setMode("register"); setErr(""); }}>{t("login.create")}</button>
             </div>
           </>
         )}
 
         {mode === "register" && (
           <>
-            <label className="lbl">email</label>
-            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vos@email.com" />
-            <label className="lbl">contraseña</label>
-            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="mínimo 8 caracteres" />
+            <label className="lbl">{t("login.email")}</label>
+            <input className="cozy-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("login.email.ph")} />
+            <label className="lbl">{t("login.password")}</label>
+            <input className="cozy-input" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder={t("login.register.password.ph")} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn" onClick={tryRegister}>crear cuenta →</button>
+            <button className="primary-btn" onClick={tryRegister}>{t("login.register.submit")}</button>
             <div className="alt-row">
-              <span>ya tenés?</span>
-              <button className="link-btn" onClick={() => { setMode("login"); setErr(""); }}>entrar</button>
+              <span>{t("login.register.have")}</span>
+              <button className="link-btn" onClick={() => { setMode("login"); setErr(""); }}>{t("login.register.signin")}</button>
             </div>
           </>
         )}
 
         {mode === "confirm" && (
           <>
-            <p className="confirm-msg">te mandamos un código a <b>{email}</b></p>
-            <label className="lbl">código de confirmación</label>
-            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" />
+            <p className="confirm-msg">{t("login.verify.msg", { email })}</p>
+            <label className="lbl">{t("login.verify.label")}</label>
+            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("login.verify.ph")} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn" onClick={tryConfirm}>confirmar →</button>
+            <button className="primary-btn" onClick={tryConfirm}>{t("login.verify.submit")}</button>
           </>
         )}
       </div>
-      <div className="login-foot">hecho con 🧶 para la familia</div>
+      <div className="login-foot">{t("footer")}</div>
     </div>
   );
 };
@@ -287,11 +308,11 @@ const LoginView = () => {
 // ONBOARDING
 // ─────────────────────────────────────────────────────────────
 const OnboardingView = () => {
-  const { setStage } = useApp();
+  const { setStage, t } = useApp();
   const slides = [
-    { mascot: "nubi", title: "bienvenidx a Cozy&Casa", text: "el lugar donde todo lo de la familia vive cómodo: chats, agenda y novedades, todo en un mismo nidito." },
-    { mascot: "soli", title: "agenda familiar", text: "exámenes, partidos, gimnasia. todo en un solo lugar para que nadie se pierda nada." },
-    { mascot: "momo", title: "chat en tiempo real", text: "mandá mensajes, compartí resultados. todo actualizado para todos al instante." },
+    { mascot: "nubi", title: t("onboarding.s1.title"), text: t("onboarding.s1.text") },
+    { mascot: "soli", title: t("onboarding.s2.title"), text: t("onboarding.s2.text") },
+    { mascot: "momo", title: t("onboarding.s3.title"), text: t("onboarding.s3.text") },
   ];
   const [i, setI] = useState(0);
   const finish = () => {
@@ -301,7 +322,7 @@ const OnboardingView = () => {
 
   return (
     <div className="onb-wrap">
-      <button className="skip-btn" onClick={finish}>saltar</button>
+      <button className="skip-btn" onClick={finish}>{t("onboarding.skip")}</button>
       <div className="onb-stage">
         <div className="onb-mascot-pad">
           <div className="floaty"><Mascot name={slides[i].mascot} size={140} /></div>
@@ -313,9 +334,9 @@ const OnboardingView = () => {
         {slides.map((_, k) => <span key={k} className={`dot ${k === i ? "on" : ""}`} />)}
       </div>
       <div className="onb-actions">
-        <button className="ghost-btn" onClick={() => setI(Math.max(0, i - 1))} disabled={i === 0}>atrás</button>
+        <button className="ghost-btn" onClick={() => setI(Math.max(0, i - 1))} disabled={i === 0}>{t("onboarding.back")}</button>
         <button className="primary-btn" onClick={() => { if (i < slides.length - 1) setI(i + 1); else finish(); }}>
-          {i === slides.length - 1 ? "empezar" : "siguiente"}
+          {i === slides.length - 1 ? t("onboarding.start") : t("onboarding.next")}
         </button>
       </div>
     </div>
@@ -326,7 +347,7 @@ const OnboardingView = () => {
 // NO FAMILY
 // ─────────────────────────────────────────────────────────────
 const NoFamilyView = () => {
-  const { user, setUser, setFamilyData, setAllFamilies, setStage, toggleTheme, theme, loadMembers } = useApp();
+  const { user, setUser, setFamilyData, setAllFamilies, setStage, toggleTheme, theme, loadMembers, t } = useApp();
   const [view, setView] = useState("choose");
   const [name, setName] = useState("");
   const [mascot, setMascot] = useState("nubi");
@@ -345,7 +366,7 @@ const NoFamilyView = () => {
       localStorage.setItem("cozy-onboarding-done", "1");
       setStage("app");
     } catch (e) {
-      setErr(e.message || "Error al crear la familia.");
+      setErr(e.message || t("nofamily.create.error"));
     }
   };
 
@@ -365,34 +386,37 @@ const NoFamilyView = () => {
       localStorage.setItem("cozy-onboarding-done", "1");
       setStage("app");
     } catch (e) {
-      setErr(e.message || "Código inválido o expirado.");
+      setErr(e.message || t("nofamily.join.error"));
     }
   };
 
   return (
     <div className="login-wrap">
-      <button className="theme-toggle login-theme" onClick={toggleTheme} aria-label="cambiar tema">
-        {theme === "light" ? "🌙" : "☀️"}
-      </button>
+      <div className="login-top-actions">
+        <button className="theme-toggle login-theme" onClick={toggleTheme} aria-label={t("theme.toggle")}>
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
+        <LangToggle />
+      </div>
       <div className="paper-card login-card">
         <div className="logo-row">
           <div className="logo-blob"><Mascot name={user?.mascot || "nubi"} size={80} /></div>
         </div>
-        <h1 className="display-title">hola, <span className="amp">{user?.name?.toLowerCase()}</span></h1>
-        <p className="tagline">todavía no estás en ningún nidito</p>
+        <h1 className="display-title">{t("nofamily.hello", { name: user?.name?.toLowerCase() })}</h1>
+        <p className="tagline">{t("nofamily.tagline")}</p>
 
         {view === "choose" && (
           <>
-            <button className="primary-btn" style={{ marginTop: 8 }} onClick={() => setView("create")}>crear mi nidito →</button>
-            <button className="ghost-btn" style={{ marginTop: 12, width: "100%" }} onClick={() => setView("join")}>unirme con código</button>
+            <button className="primary-btn" style={{ marginTop: 8 }} onClick={() => setView("create")}>{t("nofamily.create")}</button>
+            <button className="ghost-btn" style={{ marginTop: 12, width: "100%" }} onClick={() => setView("join")}>{t("nofamily.join")}</button>
           </>
         )}
 
         {view === "create" && (
           <>
-            <label className="lbl">nombre de la familia</label>
-            <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Familia Arias..." />
-            <label className="lbl">mascota del grupo</label>
+            <label className="lbl">{t("nofamily.name.label")}</label>
+            <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("nofamily.name.ph")} />
+            <label className="lbl">{t("nofamily.mascot")}</label>
             <div className="mascot-grid">
               {MASCOTS.map((m) => (
                 <button key={m} className={`mascot-pick ${mascot === m ? "mp-on" : ""}`} onClick={() => setMascot(m)}>
@@ -402,22 +426,22 @@ const NoFamilyView = () => {
               ))}
             </div>
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn full" onClick={handleCreate}>crear nidito →</button>
-            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>volver</button>
+            <button className="primary-btn full" onClick={handleCreate}>{t("nofamily.create.submit")}</button>
+            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>{t("nofamily.back")}</button>
           </>
         )}
 
         {view === "join" && (
           <>
-            <label className="lbl">código de invitación</label>
-            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="ABC-XYZ" style={{ textTransform: "uppercase" }} />
+            <label className="lbl">{t("nofamily.code.label")}</label>
+            <input className="cozy-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("nofamily.code.ph")} style={{ textTransform: "uppercase" }} />
             {err && <div className="err-pill">{err}</div>}
-            <button className="primary-btn full" onClick={handleJoin}>unirme →</button>
-            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>volver</button>
+            <button className="primary-btn full" onClick={handleJoin}>{t("nofamily.join.submit")}</button>
+            <button className="ghost-btn full" style={{ marginTop: 8 }} onClick={() => setView("choose")}>{t("nofamily.back")}</button>
           </>
         )}
       </div>
-      <div className="login-foot">hecho con 🧶 para la familia</div>
+      <div className="login-foot">{t("footer")}</div>
     </div>
   );
 };
@@ -426,7 +450,7 @@ const NoFamilyView = () => {
 // ACTIVITY ROW
 // ─────────────────────────────────────────────────────────────
 const ActivityRow = ({ a }) => {
-  const { setEditingActivity } = useApp();
+  const { setEditingActivity, t } = useApp();
   const icons = { examen: "📝", voley: "🏐", gimnasia: "🤸" };
   return (
     <div className={`act-row act-${a.type} act-row-clickable`} onClick={() => setEditingActivity(a)}>
@@ -437,7 +461,7 @@ const ActivityRow = ({ a }) => {
           <span className="act-title">{a.title}</span>
         </div>
         <div className="act-meta">
-          <span>{new Date(a.date).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+          <span>{new Date(a.date).toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
           <span className="dot-sep">·</span>
           <span>{a.time}</span>
           <span className="dot-sep">·</span>
@@ -455,7 +479,7 @@ const ActivityRow = ({ a }) => {
 // HOME
 // ─────────────────────────────────────────────────────────────
 const HomeView = () => {
-  const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme } = useApp();
+  const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t } = useApp();
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const todays = activities.filter((a) => a.date === todayStr).sort((a, b) => a.time.localeCompare(b.time));
@@ -468,11 +492,11 @@ const HomeView = () => {
     <div className="page">
       <header className="hello-head">
         <div>
-          <div className="kicker">{today.toLocaleDateString("es-AR", { weekday: "long" })}</div>
-          <h1 className="display-h1">hola, {user?.name?.toLowerCase() || "familia"}</h1>
+          <div className="kicker">{today.toLocaleDateString(t("date.locale"), { weekday: "long" })}</div>
+          <h1 className="display-h1">{t("home.hello", { name: user?.name?.toLowerCase() || "familia" })}</h1>
         </div>
         <div className="head-actions">
-          <button className="theme-toggle" onClick={toggleTheme} aria-label="cambiar tema">
+          <button className="theme-toggle" onClick={toggleTheme} aria-label={t("theme.toggle")}>
             {theme === "light" ? "🌙" : "☀️"}
           </button>
           <div className="family-badge" onClick={() => setTab("perfil")}>
@@ -492,13 +516,13 @@ const HomeView = () => {
 
       <section className="card-block">
         <div className="block-head">
-          <h2 className="block-title">hoy en casa</h2>
+          <h2 className="block-title">{t("home.today")}</h2>
           <span className="count-pill">{todays.length}</span>
         </div>
         {todays.length === 0 ? (
           <div className="empty-card">
             <Mascot name="bubu" size={64} />
-            <p>nada en agenda para hoy. respirá tranqui 🌿</p>
+            <p>{t("home.today.empty")}</p>
           </div>
         ) : (
           todays.map((a) => <ActivityRow key={a.id} a={a} />)
@@ -506,9 +530,9 @@ const HomeView = () => {
       </section>
 
       <section className="card-block">
-        <div className="block-head"><h2 className="block-title">se viene</h2></div>
+        <div className="block-head"><h2 className="block-title">{t("home.upcoming")}</h2></div>
         {upcoming.length === 0 ? (
-          <div className="empty-card"><p>sin eventos próximos.</p></div>
+          <div className="empty-card"><p>{t("home.upcoming.empty")}</p></div>
         ) : (
           upcoming.map((a) => <ActivityRow key={a.id} a={a} />)
         )}
@@ -516,8 +540,8 @@ const HomeView = () => {
 
       <section className="card-block">
         <div className="block-head">
-          <h2 className="block-title">últimos mensajes</h2>
-          <button className="link-btn" onClick={() => setTab("chat")}>ver todos</button>
+          <h2 className="block-title">{t("home.messages")}</h2>
+          <button className="link-btn" onClick={() => setTab("chat")}>{t("home.messages.all")}</button>
         </div>
         {messages.slice(-2).map((m) => (
           <div key={m.id} className="msg-mini">
@@ -528,7 +552,7 @@ const HomeView = () => {
             </div>
           </div>
         ))}
-        {messages.length === 0 && <div className="empty-card"><p>todavía no hay mensajes 💬</p></div>}
+        {messages.length === 0 && <div className="empty-card"><p>{t("home.messages.empty")}</p></div>}
       </section>
     </div>
   );
@@ -538,13 +562,14 @@ const HomeView = () => {
 // AGENDA
 // ─────────────────────────────────────────────────────────────
 const DayView = ({ day, acts }) => {
+  const { t } = useApp();
   const ds = day.toISOString().slice(0, 10);
   const todays = acts.filter((a) => a.date === ds).sort((a, b) => a.time.localeCompare(b.time));
   if (todays.length === 0) {
     return (
       <div className="empty-card">
         <Mascot name="bubu" size={64} />
-        <p>sin eventos para este día 🌿</p>
+        <p>{t("agenda.day.empty")}</p>
       </div>
     );
   }
@@ -552,7 +577,7 @@ const DayView = ({ day, acts }) => {
 };
 
 const WeekView = ({ day, acts }) => {
-  const { setEditingActivity } = useApp();
+  const { setEditingActivity, t } = useApp();
   const ws = startOfWeek(day);
   const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   return (
@@ -564,7 +589,7 @@ const WeekView = ({ day, acts }) => {
         return (
           <div key={ds} className={`week-col ${isT ? "week-today" : ""}`}>
             <div className="week-lbl">
-              <div className="week-dow">{d.toLocaleDateString("es-AR", { weekday: "short" })}</div>
+              <div className="week-dow">{d.toLocaleDateString(t("date.locale"), { weekday: "short" })}</div>
               <div className={`week-num ${isT ? "week-num-on" : ""}`}>{d.getDate()}</div>
             </div>
             {dayActs.map((a) => (
@@ -580,6 +605,7 @@ const WeekView = ({ day, acts }) => {
 };
 
 const MonthView = ({ day, acts, setCursor, setView }) => {
+  const { t } = useApp();
   const year = day.getFullYear();
   const month = day.getMonth();
   const first = new Date(year, month, 1);
@@ -589,10 +615,11 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
     ...Array.from({ length: startPad }, () => null),
     ...Array.from({ length: last.getDate() }, (_, i) => new Date(year, month, i + 1)),
   ];
+  const weekdays = t("agenda.weekdays");
   return (
     <div className="month-wrap">
       <div className="month-head">
-        {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((d) => (
+        {weekdays.map((d) => (
           <div key={d} className="month-dow">{d}</div>
         ))}
       </div>
@@ -621,7 +648,7 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
 };
 
 const AgendaView = () => {
-  const { activities } = useApp();
+  const { activities, t } = useApp();
   const [view, setView] = useState("dia");
   const [cursor, setCursor] = useState(new Date());
 
@@ -634,39 +661,44 @@ const AgendaView = () => {
     setCursor(d);
   };
 
+  const locale = t("date.locale");
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const isToday = sameDay(cursor, new Date());
   const isThisWeek = view === "semana" && startOfWeek(cursor).getTime() === startOfWeek(today).getTime();
   const isThisMonth = view === "mes" && cursor.getMonth() === today.getMonth() && cursor.getFullYear() === today.getFullYear();
-  const ctxLabel = view === "dia" ? (isToday ? "hoy" : "ir a hoy")
-    : view === "semana" ? (isThisWeek ? "esta semana" : "ir a esta semana")
-    : (isThisMonth ? "este mes" : "ir a este mes");
+  const ctxLabel = view === "dia" ? (isToday ? t("agenda.today") : t("agenda.goto.today"))
+    : view === "semana" ? (isThisWeek ? t("agenda.this.week") : t("agenda.goto.week"))
+    : (isThisMonth ? t("agenda.this.month") : t("agenda.goto.month"));
 
   return (
     <div className="page">
       <header className="agenda-head">
-        <h1 className="display-h1">agenda</h1>
+        <h1 className="display-h1">{t("agenda.title")}</h1>
         <button className={`ctx-btn ${(isToday || isThisWeek || isThisMonth) ? "ctx-on" : ""}`} onClick={goToday}>{ctxLabel}</button>
       </header>
 
       <div className="seg-control">
-        {["dia", "semana", "mes"].map((v) => (
-          <button key={v} className={`seg ${view === v ? "seg-on" : ""}`} onClick={() => setView(v)}>{v}</button>
+        {[
+          { key: "dia", label: t("agenda.view.day") },
+          { key: "semana", label: t("agenda.view.week") },
+          { key: "mes", label: t("agenda.view.month") },
+        ].map(({ key, label }) => (
+          <button key={key} className={`seg ${view === key ? "seg-on" : ""}`} onClick={() => setView(key)}>{label}</button>
         ))}
       </div>
 
       <div className="nav-row">
         <button className="round-btn" onClick={() => move(-1)}>‹</button>
         <div className="nav-label">
-          {view === "dia" && fmtDate(cursor)}
+          {view === "dia" && fmtDate(cursor, locale)}
           {view === "semana" && (
             <>
-              {startOfWeek(cursor).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+              {startOfWeek(cursor).toLocaleDateString(locale, { day: "numeric", month: "short" })}
               {" — "}
-              {addDays(startOfWeek(cursor), 6).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+              {addDays(startOfWeek(cursor), 6).toLocaleDateString(locale, { day: "numeric", month: "short" })}
             </>
           )}
-          {view === "mes" && cursor.toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
+          {view === "mes" && cursor.toLocaleDateString(locale, { month: "long", year: "numeric" })}
         </div>
         <button className="round-btn" onClick={() => move(1)}>›</button>
       </div>
@@ -682,28 +714,28 @@ const AgendaView = () => {
 // CHAT
 // ─────────────────────────────────────────────────────────────
 const ChatView = () => {
-  const { familyData, user, messages, family } = useApp();
+  const { familyData, user, messages, family, t } = useApp();
   const [text, setText] = useState("");
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const send = async () => {
     if (!text.trim() || !familyData?.id) return;
-    const t = text.trim();
+    const msg = text.trim();
     setText("");
     await db.sendMessage({
       familyId: familyData.id,
       authorId: user.userId,
       authorName: user.name,
       authorMascot: user.mascot,
-      text: t,
+      text: msg,
     });
   };
 
   return (
     <div className="page chat-page">
       <header className="chat-head">
-        <h1 className="display-h1">chat familiar</h1>
+        <h1 className="display-h1">{t("chat.title")}</h1>
         <div className="chat-pills">
           {family.slice(0, 4).map((m) => <Mascot key={m.id} name={m.mascot} size={28} />)}
         </div>
@@ -717,7 +749,7 @@ const ChatView = () => {
               <div className={`bubble ${mine ? "b-mine" : ""}`}>
                 {!mine && <div className="b-who">{m.who}</div>}
                 <div className="b-text">{m.text}</div>
-                <div className="b-time">{new Date(m.t).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</div>
+                <div className="b-time">{new Date(m.t).toLocaleTimeString(t("date.locale"), { hour: "2-digit", minute: "2-digit" })}</div>
               </div>
             </div>
           );
@@ -725,7 +757,7 @@ const ChatView = () => {
         {messages.length === 0 && (
           <div className="empty-card" style={{ marginTop: 40 }}>
             <Mascot name="momo" size={64} />
-            <p>todavía no hay mensajes. ¡empezá vos! 💬</p>
+            <p>{t("chat.empty")}</p>
           </div>
         )}
         <div ref={endRef} />
@@ -735,7 +767,7 @@ const ChatView = () => {
           className="cozy-input flat"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="escribí algo cozy..."
+          placeholder={t("chat.ph")}
           onKeyDown={(e) => e.key === "Enter" && send()}
         />
         <button className="send-btn" onClick={send}>↑</button>
@@ -755,7 +787,7 @@ const Field = ({ label, children }) => (
 );
 
 const LoadView = () => {
-  const { familyData, user, setTab } = useApp();
+  const { familyData, user, setTab, t } = useApp();
   const [type, setType] = useState(null);
   const [form, setForm] = useState({});
   const [done, setDone] = useState(false);
@@ -769,9 +801,9 @@ const LoadView = () => {
     setSaving(true);
     try {
       const title = form.title || (
-        type === "examen" ? (form.subject || "Examen")
-        : type === "voley" ? `Voley vs ${form.rival || "?"}`
-        : "Gimnasia"
+        type === "examen" ? (form.subject || t("load.type.examen"))
+        : type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
+        : t("load.type.gimnasia")
       );
       await db.createActivity({
         familyId: familyData.id,
@@ -807,10 +839,10 @@ const LoadView = () => {
       <div className="page center-page">
         <div className="success-card">
           <div className="floaty"><Mascot name="momo" size={120} /></div>
-          <h2 className="display-h2">guardado!</h2>
-          <p>todos en la familia ya lo pueden ver.</p>
-          <button className="primary-btn" onClick={reset}>cargar otra</button>
-          <button className="ghost-btn" onClick={() => { reset(); setTab("agenda"); }}>ir a la agenda →</button>
+          <h2 className="display-h2">{t("load.success.title")}</h2>
+          <p>{t("load.success.msg")}</p>
+          <button className="primary-btn" onClick={reset}>{t("load.another")}</button>
+          <button className="ghost-btn" onClick={() => { reset(); setTab("agenda"); }}>{t("load.goto.agenda")}</button>
         </div>
       </div>
     );
@@ -820,23 +852,23 @@ const LoadView = () => {
     return (
       <div className="page">
         <header>
-          <h1 className="display-h1">cargar algo</h1>
-          <p className="sub">qué tenemos hoy?</p>
+          <h1 className="display-h1">{t("load.title")}</h1>
+          <p className="sub">{t("load.subtitle")}</p>
         </header>
         <div className="type-grid">
           <button className="type-card type-examen" onClick={() => setType("examen")}>
             <div className="type-icon">📝</div>
-            <div className="type-name">examen</div>
+            <div className="type-name">{t("load.type.examen")}</div>
             <div className="type-mascot"><Mascot name="luma" size={56} /></div>
           </button>
           <button className="type-card type-voley" onClick={() => setType("voley")}>
             <div className="type-icon">🏐</div>
-            <div className="type-name">voley</div>
+            <div className="type-name">{t("load.type.voley")}</div>
             <div className="type-mascot"><Mascot name="soli" size={56} /></div>
           </button>
           <button className="type-card type-gimnasia" onClick={() => setType("gimnasia")}>
             <div className="type-icon">🤸</div>
-            <div className="type-name">gimnasia</div>
+            <div className="type-name">{t("load.type.gimnasia")}</div>
             <div className="type-mascot"><Mascot name="momo" size={56} /></div>
           </button>
         </div>
@@ -844,53 +876,60 @@ const LoadView = () => {
     );
   }
 
+  const scoreKeys = [
+    { k: "suelo", label: t("form.score.suelo") },
+    { k: "viga",  label: t("form.score.viga") },
+    { k: "paralelas", label: t("form.score.paralelas") },
+    { k: "salto", label: t("form.score.salto") },
+  ];
+
   return (
     <div className="page">
       <header className="form-head">
-        <button className="back-btn" onClick={() => setType(null)}>← volver</button>
-        <h1 className="display-h1">{type}</h1>
+        <button className="back-btn" onClick={() => setType(null)}>{t("back")}</button>
+        <h1 className="display-h1">{t(`load.type.${type}`)}</h1>
       </header>
 
       <div className="form-card">
         {type === "examen" && (
           <>
-            <Field label="materia"><input className="cozy-input" value={form.subject || ""} onChange={(e) => upd("subject", e.target.value)} placeholder="matemática..." /></Field>
+            <Field label={t("form.subject")}><input className="cozy-input" value={form.subject || ""} onChange={(e) => upd("subject", e.target.value)} placeholder={t("form.subject.ph")} /></Field>
             <div className="row-2">
-              <Field label="fecha"><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label="hora"><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
-            <Field label="nota (opcional)"><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder="qué entra, tips..." /></Field>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
         )}
 
         {type === "voley" && (
           <>
             <div className="seg-control">
-              <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>local</button>
-              <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>visitante</button>
+              <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>{t("form.venue.local")}</button>
+              <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>{t("form.venue.away")}</button>
             </div>
-            <Field label="club rival"><input className="cozy-input" value={form.rival || ""} onChange={(e) => upd("rival", e.target.value)} placeholder="River, Ferro..." /></Field>
-            <Field label="dirección"><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} placeholder="Av. Siempreviva 742" /></Field>
+            <Field label={t("form.rival")}><input className="cozy-input" value={form.rival || ""} onChange={(e) => upd("rival", e.target.value)} placeholder={t("form.rival.ph")} /></Field>
+            <Field label={t("form.address")}><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} placeholder={t("form.address.ph")} /></Field>
             <div className="row-2">
-              <Field label="fecha"><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label="hora"><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
-            <Field label="resultado (opcional)"><input className="cozy-input" value={form.result || ""} onChange={(e) => upd("result", e.target.value)} placeholder="3-1, ganamos!" /></Field>
+            <Field label={t("form.result")}><input className="cozy-input" value={form.result || ""} onChange={(e) => upd("result", e.target.value)} placeholder={t("form.result.ph")} /></Field>
           </>
         )}
 
         {type === "gimnasia" && (
           <>
-            <Field label="lugar / club"><input className="cozy-input" value={form.place || ""} onChange={(e) => upd("place", e.target.value)} placeholder="Club Norte" /></Field>
-            <Field label="dirección"><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} /></Field>
+            <Field label={t("form.place")}><input className="cozy-input" value={form.place || ""} onChange={(e) => upd("place", e.target.value)} placeholder={t("form.place.ph")} /></Field>
+            <Field label={t("form.address")}><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} /></Field>
             <div className="row-2">
-              <Field label="fecha"><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label="hora"><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <div className="scores-grid">
-              {["suelo", "viga", "paralelas", "salto"].map((k) => (
+              {scoreKeys.map(({ k, label }) => (
                 <div key={k} className="score-cell">
-                  <label>{k}</label>
+                  <label>{label}</label>
                   <input className="cozy-input small" value={form[k] || ""} onChange={(e) => upd(k, e.target.value)} placeholder="—" />
                 </div>
               ))}
@@ -899,7 +938,7 @@ const LoadView = () => {
         )}
 
         <button className="primary-btn full" onClick={save} disabled={saving}>
-          {saving ? "guardando..." : "guardar →"}
+          {saving ? t("form.saving") : t("load.save")}
         </button>
       </div>
     </div>
@@ -910,7 +949,7 @@ const LoadView = () => {
 // EDIT ACTIVITY VIEW
 // ─────────────────────────────────────────────────────────────
 const EditActivityView = () => {
-  const { editingActivity, setEditingActivity } = useApp();
+  const { editingActivity, setEditingActivity, t } = useApp();
   const a = editingActivity;
   const [form, setForm] = useState({
     date: a.date || "",
@@ -939,7 +978,7 @@ const EditActivityView = () => {
     try {
       const title =
         a.type === "examen" ? (form.subject || a.title)
-        : a.type === "voley" ? `Voley vs ${form.rival || "?"}`
+        : a.type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : a.title;
       await db.updateActivity(a.id, {
         title,
@@ -978,11 +1017,18 @@ const EditActivityView = () => {
     }
   };
 
+  const scoreKeys = [
+    { k: "suelo", label: t("form.score.suelo") },
+    { k: "viga",  label: t("form.score.viga") },
+    { k: "paralelas", label: t("form.score.paralelas") },
+    { k: "salto", label: t("form.score.salto") },
+  ];
+
   return (
     <div className="page">
       <header className="form-head">
-        <button className="back-btn" onClick={() => setEditingActivity(null)}>← volver</button>
-        <h1 className="display-h1">{a.type}</h1>
+        <button className="back-btn" onClick={() => setEditingActivity(null)}>{t("back")}</button>
+        <h1 className="display-h1">{t(`load.type.${a.type}`)}</h1>
       </header>
 
       <div className="act-owner-strip">
@@ -993,43 +1039,43 @@ const EditActivityView = () => {
       <div className="form-card">
         {a.type === "examen" && (
           <>
-            <Field label="materia"><input className="cozy-input" value={form.subject} onChange={(e) => upd("subject", e.target.value)} placeholder="matemática..." /></Field>
+            <Field label={t("form.subject")}><input className="cozy-input" value={form.subject} onChange={(e) => upd("subject", e.target.value)} placeholder={t("form.subject.ph")} /></Field>
             <div className="row-2">
-              <Field label="fecha"><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label="hora"><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
-            <Field label="nota (opcional)"><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder="qué entra, tips..." /></Field>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
         )}
 
         {a.type === "voley" && (
           <>
             <div className="seg-control">
-              <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>local</button>
-              <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>visitante</button>
+              <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>{t("form.venue.local")}</button>
+              <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>{t("form.venue.away")}</button>
             </div>
-            <Field label="club rival"><input className="cozy-input" value={form.rival} onChange={(e) => upd("rival", e.target.value)} placeholder="River, Ferro..." /></Field>
-            <Field label="dirección"><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} placeholder="Av. Siempreviva 742" /></Field>
+            <Field label={t("form.rival")}><input className="cozy-input" value={form.rival} onChange={(e) => upd("rival", e.target.value)} placeholder={t("form.rival.ph")} /></Field>
+            <Field label={t("form.address")}><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} placeholder={t("form.address.ph")} /></Field>
             <div className="row-2">
-              <Field label="fecha"><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label="hora"><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
-            <Field label="resultado (opcional)"><input className="cozy-input" value={form.result} onChange={(e) => upd("result", e.target.value)} placeholder="3-1, ganamos!" /></Field>
+            <Field label={t("form.result")}><input className="cozy-input" value={form.result} onChange={(e) => upd("result", e.target.value)} placeholder={t("form.result.ph")} /></Field>
           </>
         )}
 
         {a.type === "gimnasia" && (
           <>
-            <Field label="lugar / club"><input className="cozy-input" value={form.place} onChange={(e) => upd("place", e.target.value)} placeholder="Club Norte" /></Field>
-            <Field label="dirección"><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} /></Field>
+            <Field label={t("form.place")}><input className="cozy-input" value={form.place} onChange={(e) => upd("place", e.target.value)} placeholder={t("form.place.ph")} /></Field>
+            <Field label={t("form.address")}><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} /></Field>
             <div className="row-2">
-              <Field label="fecha"><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label="hora"><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <div className="scores-grid">
-              {["suelo", "viga", "paralelas", "salto"].map((k) => (
+              {scoreKeys.map(({ k, label }) => (
                 <div key={k} className="score-cell">
-                  <label>{k}</label>
+                  <label>{label}</label>
                   <input className="cozy-input small" value={form[k]} onChange={(e) => upd(k, e.target.value)} placeholder="—" />
                 </div>
               ))}
@@ -1038,22 +1084,22 @@ const EditActivityView = () => {
         )}
 
         <button className="primary-btn full" onClick={save} disabled={saving}>
-          {saving ? "guardando..." : "guardar cambios →"}
+          {saving ? t("form.saving") : t("edit.save")}
         </button>
 
         {confirmDelete ? (
           <div className="delete-confirm">
-            <p>¿seguro que querés eliminar esta actividad?</p>
+            <p>{t("edit.delete.confirm")}</p>
             <div className="delete-confirm-btns">
               <button className="danger-btn" onClick={handleDelete} disabled={deleting}>
-                {deleting ? "eliminando..." : "sí, eliminar"}
+                {deleting ? t("edit.deleting") : t("edit.delete.yes")}
               </button>
-              <button className="ghost-btn" onClick={() => setConfirmDelete(false)}>cancelar</button>
+              <button className="ghost-btn" onClick={() => setConfirmDelete(false)}>{t("cancel")}</button>
             </div>
           </div>
         ) : (
           <button className="ghost-btn full delete-ghost" onClick={() => setConfirmDelete(true)}>
-            eliminar actividad
+            {t("edit.delete")}
           </button>
         )}
       </div>
@@ -1065,7 +1111,7 @@ const EditActivityView = () => {
 // FAMILY SECTION (dentro de perfil)
 // ─────────────────────────────────────────────────────────────
 const FamilySection = () => {
-  const { familyData, user, family, invites, setInvites, isAdmin, loadMembers } = useApp();
+  const { familyData, user, family, invites, setInvites, isAdmin, loadMembers, t } = useApp();
   const [showInvite, setShowInvite] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -1135,7 +1181,7 @@ const FamilySection = () => {
   return (
     <div className="form-card">
       <div className="block-head">
-        <h2 className="block-title">integrantes</h2>
+        <h2 className="block-title">{t("family.members")}</h2>
         <span className="count-pill">{family.length}</span>
       </div>
 
@@ -1146,21 +1192,21 @@ const FamilySection = () => {
             <div className="fam-body">
               <div className="fam-name">
                 {m.name}
-                {m.role === "admin" && <span className="admin-tag">admin</span>}
+                {m.role === "admin" && <span className="admin-tag">{t("family.tag.admin")}</span>}
               </div>
               <div className="fam-email">{m.email}</div>
             </div>
             {isAdmin && m.id !== user?.userId && (
-              <button className="fam-edit" onClick={() => setEditingMember(m)} aria-label="editar">⋯</button>
+              <button className="fam-edit" onClick={() => setEditingMember(m)} aria-label={t("profile.edit")}>⋯</button>
             )}
-            {m.id === user?.userId && <span className="fam-you">vos</span>}
+            {m.id === user?.userId && <span className="fam-you">{t("family.tag.you")}</span>}
           </div>
         ))}
       </div>
 
       {invites.length > 0 && (
         <>
-          <div className="invites-divider">invitaciones pendientes</div>
+          <div className="invites-divider">{t("family.pending")}</div>
           {invites.map((i) => (
             <div key={i.code} className="invite-row">
               <div className="invite-mascot"><Mascot name={i.mascot} size={36} blink={false} /></div>
@@ -1169,7 +1215,7 @@ const FamilySection = () => {
                 <div className="invite-meta">{i.email} · {i.role}</div>
               </div>
               {isAdmin && (
-                <button className="invite-cancel" onClick={() => handleCancelInvite(i.code)}>cancelar</button>
+                <button className="invite-cancel" onClick={() => handleCancelInvite(i.code)}>{t("family.cancel.invite")}</button>
               )}
             </div>
           ))}
@@ -1178,10 +1224,10 @@ const FamilySection = () => {
 
       {isAdmin ? (
         <button className="ghost-btn full add-member-btn" onClick={() => setShowInvite(true)}>
-          + invitar a alguien
+          {t("family.invite.btn")}
         </button>
       ) : (
-        <p className="admin-only-note">sólo lxs admins pueden agregar miembros nuevos.</p>
+        <p className="admin-only-note">{t("family.admin.only")}</p>
       )}
 
       {showInvite && (
@@ -1190,18 +1236,18 @@ const FamilySection = () => {
             {!generatedCode ? (
               <>
                 <div className="modal-mascot floaty"><Mascot name="momo" size={88} /></div>
-                <h3 className="modal-title">invitar al nidito</h3>
-                <p className="modal-sub">generamos un código único. quien lo use entra como parte de la familia.</p>
+                <h3 className="modal-title">{t("family.invite.title")}</h3>
+                <p className="modal-sub">{t("family.invite.sub")}</p>
                 <div className="field">
-                  <label className="lbl">email (opcional)</label>
-                  <input className="cozy-input" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="hermano@email.com" />
+                  <label className="lbl">{t("family.invite.email")}</label>
+                  <input className="cozy-input" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder={t("family.invite.email.ph")} />
                 </div>
-                <label className="lbl">rol</label>
+                <label className="lbl">{t("family.invite.role")}</label>
                 <div className="seg-control">
-                  <button className={`seg ${inviteRole === "miembro" ? "seg-on" : ""}`} onClick={() => setInviteRole("miembro")}>miembro</button>
-                  <button className={`seg ${inviteRole === "admin" ? "seg-on" : ""}`} onClick={() => setInviteRole("admin")}>admin</button>
+                  <button className={`seg ${inviteRole === "miembro" ? "seg-on" : ""}`} onClick={() => setInviteRole("miembro")}>{t("profile.role.member")}</button>
+                  <button className={`seg ${inviteRole === "admin" ? "seg-on" : ""}`} onClick={() => setInviteRole("admin")}>{t("profile.role.admin")}</button>
                 </div>
-                <label className="lbl">mascotita sugerida</label>
+                <label className="lbl">{t("family.invite.mascot")}</label>
                 <div className="mascot-grid">
                   {MASCOTS.map((m) => (
                     <button key={m} className={`mascot-pick ${inviteMascot === m ? "mp-on" : ""}`} onClick={() => setInviteMascot(m)}>
@@ -1210,23 +1256,23 @@ const FamilySection = () => {
                     </button>
                   ))}
                 </div>
-                <button className="primary-btn full" onClick={createInvite}>generar código →</button>
-                <button className="ghost-btn full" onClick={closeInvite}>cancelar</button>
+                <button className="primary-btn full" onClick={createInvite}>{t("family.invite.gen")}</button>
+                <button className="ghost-btn full" onClick={closeInvite}>{t("cancel")}</button>
               </>
             ) : (
               <>
                 <div className="modal-mascot floaty"><Mascot name={generatedCode.mascot} size={100} /></div>
-                <h3 className="modal-title">¡código listo!</h3>
-                <p className="modal-sub">compartilo con quien quieras sumar.</p>
+                <h3 className="modal-title">{t("family.code.title")}</h3>
+                <p className="modal-sub">{t("family.code.sub")}</p>
                 <div className="code-display" onClick={copyCode}>
                   <span className="code-text">{generatedCode.code}</span>
-                  <span className="code-copy">{copied ? "✓ copiado" : "tocá para copiar"}</span>
+                  <span className="code-copy">{copied ? t("family.code.copied") : t("family.code.tap")}</span>
                 </div>
                 <div className="code-meta">
-                  <div><b>para:</b> {generatedCode.email}</div>
-                  <div><b>rol:</b> {generatedCode.role}</div>
+                  <div><b>{t("family.code.for")}</b> {generatedCode.email}</div>
+                  <div><b>{t("family.code.role")}</b> {generatedCode.role}</div>
                 </div>
-                <button className="primary-btn full" onClick={closeInvite}>listo</button>
+                <button className="primary-btn full" onClick={closeInvite}>{t("family.code.done")}</button>
               </>
             )}
           </div>
@@ -1239,15 +1285,15 @@ const FamilySection = () => {
             <div className="modal-mascot"><Mascot name={editingMember.mascot} size={88} /></div>
             <h3 className="modal-title">{editingMember.name}</h3>
             <p className="modal-sub">{editingMember.email}</p>
-            <label className="lbl">rol</label>
+            <label className="lbl">{t("family.edit.role")}</label>
             <div className="seg-control">
               <button className={`seg ${editingMember.role === "miembro" ? "seg-on" : ""}`}
-                onClick={() => handleUpdateRole(editingMember.id, "miembro")}>miembro</button>
+                onClick={() => handleUpdateRole(editingMember.id, "miembro")}>{t("profile.role.member")}</button>
               <button className={`seg ${editingMember.role === "admin" ? "seg-on" : ""}`}
-                onClick={() => handleUpdateRole(editingMember.id, "admin")}>admin</button>
+                onClick={() => handleUpdateRole(editingMember.id, "admin")}>{t("profile.role.admin")}</button>
             </div>
-            <button className="ghost-btn full" onClick={() => setEditingMember(null)}>cerrar</button>
-            <button className="danger-btn full" onClick={() => handleRemoveMember(editingMember.id)}>quitar del nidito</button>
+            <button className="ghost-btn full" onClick={() => setEditingMember(null)}>{t("close")}</button>
+            <button className="danger-btn full" onClick={() => handleRemoveMember(editingMember.id)}>{t("family.kick")}</button>
           </div>
         </div>
       )}
@@ -1265,7 +1311,7 @@ const ProfileView = () => {
     familyMascot, isAdmin,
     allFamilies, setAllFamilies,
     setFamily, loadMembers,
-    setStage, setTab,
+    setStage, setTab, t,
   } = useApp();
 
   const [name, setName] = useState(user?.name || "");
@@ -1306,7 +1352,7 @@ const ProfileView = () => {
       setJoinCode("");
       setShowJoin(false);
     } catch (e) {
-      setJoinErr(e.message || "Código inválido o expirado.");
+      setJoinErr(e.message || t("profile.join.error"));
     }
   };
 
@@ -1322,23 +1368,26 @@ const ProfileView = () => {
 
   return (
     <div className="page">
-      <header><h1 className="display-h1">tu perfil</h1></header>
+      <header className="profile-head">
+        <h1 className="display-h1">{t("profile.title")}</h1>
+        <LangToggle />
+      </header>
 
       <div className="profile-hero">
         <div className="hero-mascot floaty"><Mascot name={mascot} size={140} /></div>
         <div className="hero-info">
-          <div className="hero-name">{name || "sin nombre"}</div>
+          <div className="hero-name">{name || t("profile.no.name")}</div>
           <div className="hero-email">{user?.email}</div>
-          <div className="role-pill">{user?.role || "miembro"}</div>
+          <div className="role-pill">{user?.role || t("profile.role.member")}</div>
         </div>
       </div>
 
       <div className="form-card">
         <div className="field">
-          <label className="lbl">tu nombre</label>
+          <label className="lbl">{t("profile.name.label")}</label>
           <input className="cozy-input" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
-        <label className="lbl">tu mascotita</label>
+        <label className="lbl">{t("profile.mascot.label")}</label>
         <div className="mascot-grid">
           {MASCOTS.map((m) => (
             <button key={m} className={`mascot-pick ${mascot === m ? "mp-on" : ""}`} onClick={() => setMascot(m)}>
@@ -1347,13 +1396,13 @@ const ProfileView = () => {
             </button>
           ))}
         </div>
-        <button className="primary-btn full" onClick={save}>guardar cambios</button>
+        <button className="primary-btn full" onClick={save}>{t("profile.save")}</button>
       </div>
 
       {/* Mis familias */}
       <div className="form-card">
         <div className="block-head">
-          <h2 className="block-title">mis niditos</h2>
+          <h2 className="block-title">{t("profile.families")}</h2>
           <span className="count-pill">{allFamilies.length}</span>
         </div>
         {allFamilies.map(({ family: fam, membership }) => (
@@ -1364,30 +1413,30 @@ const ProfileView = () => {
               <div className="fam-email">{membership.role}</div>
             </div>
             {fam.id === familyData?.id
-              ? <span className="fam-you">activo</span>
-              : <button className="link-btn" onClick={() => switchFamily(fam.id)}>cambiar</button>
+              ? <span className="fam-you">{t("profile.active")}</span>
+              : <button className="link-btn" onClick={() => switchFamily(fam.id)}>{t("profile.switch")}</button>
             }
           </div>
         ))}
 
         {!showJoin ? (
           <button className="ghost-btn full add-member-btn" onClick={() => setShowJoin(true)}>
-            + unirme a otro nidito
+            {t("profile.join")}
           </button>
         ) : (
           <div style={{ marginTop: 12 }}>
-            <label className="lbl">código de invitación</label>
+            <label className="lbl">{t("profile.join.code")}</label>
             <input
               className="cozy-input"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
-              placeholder="ABC-XYZ"
+              placeholder={t("profile.join.ph")}
               style={{ textTransform: "uppercase" }}
             />
             {joinErr && <div className="err-pill">{joinErr}</div>}
             <div className="row-2" style={{ marginTop: 8 }}>
-              <button className="ghost-btn" onClick={() => { setShowJoin(false); setJoinCode(""); setJoinErr(""); }}>cancelar</button>
-              <button className="primary-btn" onClick={handleJoinAnother}>unirme →</button>
+              <button className="ghost-btn" onClick={() => { setShowJoin(false); setJoinCode(""); setJoinErr(""); }}>{t("cancel")}</button>
+              <button className="primary-btn" onClick={handleJoinAnother}>{t("profile.join.submit")}</button>
             </div>
           </div>
         )}
@@ -1396,15 +1445,15 @@ const ProfileView = () => {
       {/* Mascota del nidito activo */}
       <div className="form-card">
         <div className="block-head">
-          <h2 className="block-title">mascota de {familyData?.name || "la familia"}</h2>
-          {isAdmin && <button className="link-btn" onClick={() => setEditingFamily(!editingFamily)}>{editingFamily ? "listo" : "cambiar"}</button>}
+          <h2 className="block-title">{t("profile.fam.mascot", { name: familyData?.name || "" })}</h2>
+          {isAdmin && <button className="link-btn" onClick={() => setEditingFamily(!editingFamily)}>{editingFamily ? t("profile.done") : t("profile.edit")}</button>}
         </div>
         {!editingFamily ? (
           <div className="family-current">
             <Mascot name={familyMascot} size={88} />
             <div>
               <div className="hero-name">{MASCOT_LABELS[familyMascot] || familyMascot}</div>
-              <div className="hero-email">la mascota que nos representa</div>
+              <div className="hero-email">{t("profile.fam.mascot.desc")}</div>
             </div>
           </div>
         ) : (
@@ -1420,15 +1469,15 @@ const ProfileView = () => {
       </div>
 
       <div className="form-card permissions">
-        <h2 className="block-title">permisos y estado</h2>
-        <div className="perm-row"><span>estado</span><span className="perm-val ok">activo</span></div>
-        <div className="perm-row"><span>rol</span><span className="perm-val">{user?.role}</span></div>
-        <div className="perm-row"><span>nidito activo</span><span className="perm-val">{familyData?.name}</span></div>
+        <h2 className="block-title">{t("profile.permissions")}</h2>
+        <div className="perm-row"><span>{t("profile.status")}</span><span className="perm-val ok">{t("profile.status.val")}</span></div>
+        <div className="perm-row"><span>{t("profile.role")}</span><span className="perm-val">{user?.role}</span></div>
+        <div className="perm-row"><span>{t("profile.active.fam")}</span><span className="perm-val">{familyData?.name}</span></div>
       </div>
 
       <FamilySection />
 
-      <button className="logout-btn" onClick={handleLogout}>salir del nidito 👋</button>
+      <button className="logout-btn" onClick={handleLogout}>{t("profile.logout")}</button>
     </div>
   );
 };
@@ -1437,13 +1486,13 @@ const ProfileView = () => {
 // NAV
 // ─────────────────────────────────────────────────────────────
 const Nav = () => {
-  const { tab, setTab, editingActivity, setEditingActivity } = useApp();
+  const { tab, setTab, editingActivity, setEditingActivity, t } = useApp();
   const items = [
-    { id: "home",   label: "inicio",  icon: "🏠" },
-    { id: "chat",   label: "chat",    icon: "💬" },
-    { id: "cargar", label: "cargar",  icon: "✨", big: true },
-    { id: "perfil", label: "perfil",  icon: "🌸" },
-    { id: "agenda", label: "agenda",  icon: "📅" },
+    { id: "home",   label: t("nav.home"),    icon: "🏠" },
+    { id: "chat",   label: t("nav.chat"),    icon: "💬" },
+    { id: "cargar", label: t("nav.load"),    icon: "✨", big: true },
+    { id: "perfil", label: t("nav.profile"), icon: "🌸" },
+    { id: "agenda", label: t("nav.agenda"),  icon: "📅" },
   ];
   const handleNav = (id) => {
     if (editingActivity) setEditingActivity(null);
@@ -1477,6 +1526,13 @@ export default function App() {
   const [allFamilies, setAllFamilies] = useState([]);
   const [tab, setTab] = useState("home");
   const [editingActivity, setEditingActivity] = useState(null);
+  const [lang, setLang] = useState(() => localStorage.getItem("cozy-lang") || "es");
+
+  const handleSetLang = (l) => {
+    setLang(l);
+    localStorage.setItem("cozy-lang", l);
+  };
+  const t = (key, vars) => i18nT(lang, key, vars);
   const [activities, setActivities] = useState([]);
   const [messages, setMessages] = useState([]);
   const [family, setFamily] = useState([]);
@@ -1622,6 +1678,7 @@ export default function App() {
     invites, setInvites,
     tab, setTab,
     editingActivity, setEditingActivity,
+    lang, setLang: handleSetLang, t,
     theme, toggleTheme,
     stage, setStage,
     isAdmin, familyMascot,
