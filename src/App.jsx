@@ -806,7 +806,13 @@ const ChatView = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [msgLoading, setMsgLoading] = useState(null);
   const endRef = useRef(null);
+  const pressTimer = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const startPress = (id) => {
+    pressTimer.current = setTimeout(() => toggleAction(id), 500);
+  };
+  const cancelPress = () => clearTimeout(pressTimer.current);
 
   const send = async () => {
     if (!text.trim() || !familyData?.id) return;
@@ -874,7 +880,10 @@ const ChatView = () => {
               {!mine && <Mascot name={m.mascot || "nubi"} size={36} />}
               <div
                 className={`bubble ${mine ? "b-mine" : ""}`}
-                onClick={() => mine && !isEditing && toggleAction(m.id)}
+                onTouchStart={() => mine && !isEditing && startPress(m.id)}
+                onTouchEnd={cancelPress}
+                onTouchMove={cancelPress}
+                onContextMenu={(e) => { if (mine) e.preventDefault(); }}
               >
                 {!mine && <div className="b-who">{m.who}</div>}
                 {isEditing ? (
