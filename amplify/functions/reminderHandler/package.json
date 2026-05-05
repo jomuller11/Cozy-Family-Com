@@ -1,0 +1,11 @@
+{
+  "name": "reminder-handler",
+  "version": "1.0.0",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/web-push": "^3.6.4"
+  }
+}

@@ -108,6 +108,10 @@ const schema = a.schema({
       scoreParalelas: a.string(),
       scoreSalto: a.string(),
 
+      // Reminders
+      reminderAt: a.datetime(),
+      reminderSent: a.boolean(),
+
       family: a.belongsTo("Family", "familyId"),
     })
     .secondaryIndexes((index) => [

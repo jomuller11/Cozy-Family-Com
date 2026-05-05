@@ -167,6 +167,13 @@ function urlBase64ToUint8Array(b64) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
+// Returns UTC ISO string for 15 min before the activity's local start time
+function computeReminderAt(date, time) {
+  if (!date || !time) return null;
+  const start = new Date(`${date}T${time}:00`); // parsed as local time in browser
+  return new Date(start.getTime() - 15 * 60 * 1000).toISOString();
+}
+
 const MASCOTS = ["nubi", "soli", "luma", "bubu", "pipo", "mishi", "toto", "momo"];
 const MASCOT_LABELS = {
   nubi: "Nubi", soli: "Soli", luma: "Luma", bubu: "Bubu",
@@ -862,12 +869,14 @@ const LoadView = () => {
         : type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : t("load.type.gimnasia")
       );
+      const actDate = form.date || new Date().toISOString().slice(0, 10);
+      const actTime = form.time || "09:00";
       await db.createActivity({
         familyId: familyData.id,
         type,
         title,
-        date: form.date || new Date().toISOString().slice(0, 10),
-        time: form.time || "09:00",
+        date: actDate,
+        time: actTime,
         ownerId: user.userId,
         ownerName: user.name,
         mascot: user.mascot,
@@ -882,6 +891,8 @@ const LoadView = () => {
         scoreViga: form.viga,
         scoreParalelas: form.paralelas,
         scoreSalto: form.salto,
+        reminderAt: computeReminderAt(actDate, actTime),
+        reminderSent: false,
       });
       db.sendPushNotification({
         familyId: familyData.id,
@@ -1061,6 +1072,8 @@ const EditActivityView = () => {
         scoreViga: form.viga || null,
         scoreParalelas: form.paralelas || null,
         scoreSalto: form.salto || null,
+        reminderAt: computeReminderAt(form.date, form.time),
+        reminderSent: false,
       });
       setEditingActivity(null);
     } catch (e) {
