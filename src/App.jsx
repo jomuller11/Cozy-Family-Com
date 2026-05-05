@@ -871,6 +871,7 @@ const LoadView = () => {
       );
       const actDate = form.date || new Date().toISOString().slice(0, 10);
       const actTime = form.time || "09:00";
+      const reminderAt = computeReminderAt(actDate, actTime);
       await db.createActivity({
         familyId: familyData.id,
         type,
@@ -891,8 +892,7 @@ const LoadView = () => {
         scoreViga: form.viga,
         scoreParalelas: form.paralelas,
         scoreSalto: form.salto,
-        reminderAt: computeReminderAt(actDate, actTime),
-        reminderSent: false,
+        ...(reminderAt && { reminderAt, reminderSent: false }),
       });
       db.sendPushNotification({
         familyId: familyData.id,
@@ -1057,6 +1057,7 @@ const EditActivityView = () => {
         a.type === "examen" ? (form.subject || a.title)
         : a.type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : a.title;
+      const reminderAt = computeReminderAt(form.date, form.time);
       await db.updateActivity(a.id, {
         title,
         date: form.date,
@@ -1072,8 +1073,7 @@ const EditActivityView = () => {
         scoreViga: form.viga || null,
         scoreParalelas: form.paralelas || null,
         scoreSalto: form.salto || null,
-        reminderAt: computeReminderAt(form.date, form.time),
-        reminderSent: false,
+        ...(reminderAt && { reminderAt, reminderSent: false }),
       });
       setEditingActivity(null);
     } catch (e) {
