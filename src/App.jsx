@@ -800,6 +800,11 @@ const AgendaView = () => {
 const ChatView = () => {
   const { familyData, user, messages, family, t } = useApp();
   const [text, setText] = useState("");
+  const [actionMsgId, setActionMsgId] = useState(null);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [msgLoading, setMsgLoading] = useState(null);
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -822,6 +827,34 @@ const ChatView = () => {
     }).catch(() => {});
   };
 
+  const startEdit = (m) => {
+    setEditingMsgId(m.id);
+    setEditText(m.text);
+    setActionMsgId(null);
+    setConfirmDeleteId(null);
+  };
+
+  const saveEdit = async (id) => {
+    if (!editText.trim()) return;
+    setMsgLoading(id);
+    try { await db.updateMessage(id, editText.trim()); } finally {
+      setEditingMsgId(null); setEditText(""); setMsgLoading(null);
+    }
+  };
+
+  const doDelete = async (id) => {
+    setMsgLoading(id);
+    try { await db.deleteMessage(id); } finally {
+      setActionMsgId(null); setConfirmDeleteId(null); setMsgLoading(null);
+    }
+  };
+
+  const toggleAction = (id) => {
+    setActionMsgId((prev) => prev === id ? null : id);
+    setConfirmDeleteId(null);
+    setEditingMsgId(null);
+  };
+
   return (
     <div className="page chat-page">
       <header className="chat-head">
@@ -833,14 +866,50 @@ const ChatView = () => {
       <div className="chat-stream">
         {messages.map((m) => {
           const mine = m.authorId === user?.userId;
+          const isEditing = editingMsgId === m.id;
+          const showActions = mine && actionMsgId === m.id && !isEditing;
+          const loading = msgLoading === m.id;
           return (
             <div key={m.id} className={`bubble-row ${mine ? "mine" : ""}`}>
               {!mine && <Mascot name={m.mascot || "nubi"} size={36} />}
-              <div className={`bubble ${mine ? "b-mine" : ""}`}>
+              <div
+                className={`bubble ${mine ? "b-mine" : ""}`}
+                onClick={() => mine && !isEditing && toggleAction(m.id)}
+              >
                 {!mine && <div className="b-who">{m.who}</div>}
-                <div className="b-text">{m.text}</div>
-                <div className="b-time">{new Date(m.t).toLocaleTimeString(t("date.locale"), { hour: "2-digit", minute: "2-digit" })}</div>
+                {isEditing ? (
+                  <input
+                    className="cozy-input bubble-edit-input"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveEdit(m.id)}
+                    autoFocus
+                  />
+                ) : (
+                  <div className="b-text">{m.text}</div>
+                )}
+                {isEditing ? (
+                  <div className="bubble-edit-actions">
+                    <button className="bact-save" onClick={() => saveEdit(m.id)} disabled={loading}>{loading ? "…" : t("chat.edit.save")}</button>
+                    <button className="bact-cancel" onClick={() => setEditingMsgId(null)}>{t("cancel")}</button>
+                  </div>
+                ) : (
+                  <div className="b-time">{new Date(m.t).toLocaleTimeString(t("date.locale"), { hour: "2-digit", minute: "2-digit" })}</div>
+                )}
               </div>
+              {showActions && (
+                <div className="bubble-actions">
+                  <button className="bact-edit" onClick={() => startEdit(m)}>{t("chat.edit")}</button>
+                  {confirmDeleteId === m.id ? (
+                    <>
+                      <button className="bact-del-confirm" onClick={() => doDelete(m.id)} disabled={loading}>{loading ? "…" : t("chat.delete.confirm")}</button>
+                      <button className="bact-cancel" onClick={() => setConfirmDeleteId(null)}>{t("cancel")}</button>
+                    </>
+                  ) : (
+                    <button className="bact-del" onClick={() => setConfirmDeleteId(m.id)}>{t("chat.delete")}</button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -869,9 +938,9 @@ const ChatView = () => {
 // ─────────────────────────────────────────────────────────────
 // CARGAR ACTIVIDAD
 // ─────────────────────────────────────────────────────────────
-const Field = ({ label, children }) => (
-  <div className="field">
-    <label className="lbl">{label}</label>
+const Field = ({ label, children, error }) => (
+  <div className={`field ${error ? "field-error" : ""}`}>
+    <label className="lbl">{label}{error && <span className="field-required"> *</span>}</label>
     {children}
   </div>
 );
@@ -883,18 +952,21 @@ const LoadView = () => {
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  const reset = () => { setType(null); setForm({}); setDone(false); setErr(""); };
-  const upd = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+  const reset = () => { setType(null); setForm({}); setDone(false); setErr(""); setFieldErrors({}); };
+  const upd = (k, v) => { setForm((prev) => ({ ...prev, [k]: v })); setFieldErrors((prev) => ({ ...prev, [k]: false })); };
 
   const save = async () => {
     if (!familyData?.id || saving) return;
-    const missing =
-      (type === "examen" && !form.subject?.trim()) ||
-      (type === "voley" && !form.rival?.trim()) ||
-      (type === "gimnasia" && !form.place?.trim()) ||
-      !form.date || !form.time;
-    if (missing) { setErr(t("validation.required")); return; }
+    const fe = {
+      subject: type === "examen" && !form.subject?.trim(),
+      rival:   type === "voley"  && !form.rival?.trim(),
+      place:   type === "gimnasia" && !form.place?.trim(),
+      date: !form.date,
+      time: !form.time,
+    };
+    if (Object.values(fe).some(Boolean)) { setFieldErrors(fe); setErr(t("validation.required")); return; }
     setErr("");
     setSaving(true);
     try {
@@ -1012,10 +1084,10 @@ const LoadView = () => {
       <div className="form-card">
         {type === "examen" && (
           <>
-            <Field label={t("form.subject")}><input className="cozy-input" value={form.subject || ""} onChange={(e) => upd("subject", e.target.value)} placeholder={t("form.subject.ph")} /></Field>
+            <Field label={t("form.subject")} error={fieldErrors.subject}><input className="cozy-input" value={form.subject || ""} onChange={(e) => upd("subject", e.target.value)} placeholder={t("form.subject.ph")} /></Field>
             <div className="row-2">
-              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")} error={fieldErrors.date}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")} error={fieldErrors.time}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
@@ -1027,11 +1099,11 @@ const LoadView = () => {
               <button className={`seg ${form.venue === "local" ? "seg-on" : ""}`} onClick={() => upd("venue", "local")}>{t("form.venue.local")}</button>
               <button className={`seg ${form.venue === "visitante" ? "seg-on" : ""}`} onClick={() => upd("venue", "visitante")}>{t("form.venue.away")}</button>
             </div>
-            <Field label={t("form.rival")}><input className="cozy-input" value={form.rival || ""} onChange={(e) => upd("rival", e.target.value)} placeholder={t("form.rival.ph")} /></Field>
+            <Field label={t("form.rival")} error={fieldErrors.rival}><input className="cozy-input" value={form.rival || ""} onChange={(e) => upd("rival", e.target.value)} placeholder={t("form.rival.ph")} /></Field>
             <Field label={t("form.address")}><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} placeholder={t("form.address.ph")} /></Field>
             <div className="row-2">
-              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")} error={fieldErrors.date}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")} error={fieldErrors.time}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <Field label={t("form.result")}><input className="cozy-input" value={form.result || ""} onChange={(e) => upd("result", e.target.value)} placeholder={t("form.result.ph")} /></Field>
           </>
@@ -1039,11 +1111,11 @@ const LoadView = () => {
 
         {type === "gimnasia" && (
           <>
-            <Field label={t("form.place")}><input className="cozy-input" value={form.place || ""} onChange={(e) => upd("place", e.target.value)} placeholder={t("form.place.ph")} /></Field>
+            <Field label={t("form.place")} error={fieldErrors.place}><input className="cozy-input" value={form.place || ""} onChange={(e) => upd("place", e.target.value)} placeholder={t("form.place.ph")} /></Field>
             <Field label={t("form.address")}><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} /></Field>
             <div className="row-2">
-              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
-              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+              <Field label={t("form.date")} error={fieldErrors.date}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")} error={fieldErrors.time}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <div className="scores-grid">
               {scoreKeys.map(({ k, label }) => (
@@ -1329,7 +1401,7 @@ const FamilySection = () => {
         mascotSuggested: inviteMascot,
         createdBy: user.userId,
       });
-      const mapped = { id: inv.id, code: inv.code, email: inviteEmail || "—", mascot: inviteMascot, role: inviteRole };
+      const mapped = { id: inv.id, code: inv.code, email: inviteEmail || "—", mascot: inviteMascot, role: inviteRole, expiresAt: inv.expiresAt };
       setInvites((prev) => [...prev, mapped]);
       setGeneratedCode(mapped);
     } catch (e) {
@@ -1438,7 +1510,14 @@ const FamilySection = () => {
               <div className="invite-mascot"><Mascot name={i.mascot} size={36} blink={false} /></div>
               <div className="invite-body">
                 <div className="invite-code">{i.code}</div>
-                <div className="invite-meta">{i.email} · {i.role}</div>
+                <div className="invite-meta">
+                  {i.email} · {i.role}
+                  {i.expiresAt && (() => {
+                    const days = Math.ceil((new Date(i.expiresAt) - new Date()) / 86400000);
+                    const label = days <= 0 ? null : days === 1 ? t("family.invite.expires.1") : t("family.invite.expires", { days });
+                    return label ? <span className="invite-expires"> · {label}</span> : null;
+                  })()}
+                </div>
               </div>
               {isAdmin && (
                 <button className="invite-cancel" onClick={() => handleCancelInvite(i.code)} disabled={cancelingInvite === i.code}>
@@ -1551,6 +1630,14 @@ const FamilySection = () => {
 // ─────────────────────────────────────────────────────────────
 // PROFILE
 // ─────────────────────────────────────────────────────────────
+async function loadNotifHistory() {
+  try {
+    const cache = await caches.open("notif-history-v1");
+    const resp = await cache.match("/notif-history");
+    return resp ? resp.json() : [];
+  } catch { return []; }
+}
+
 const ProfileView = () => {
   const {
     user, setUser,
@@ -1560,6 +1647,11 @@ const ProfileView = () => {
     setFamily, loadMembers,
     setStage, setTab, t,
   } = useApp();
+  const [notifHistory, setNotifHistory] = useState([]);
+  const [showNotifHistory, setShowNotifHistory] = useState(false);
+  useEffect(() => {
+    if (showNotifHistory) loadNotifHistory().then(setNotifHistory);
+  }, [showNotifHistory]);
 
   const [name, setName] = useState(user?.name || "");
   const [mascot, setMascot] = useState(user?.mascot || "nubi");
@@ -1809,6 +1901,26 @@ const ProfileView = () => {
         </div>
       )}
 
+      <div className="notif-history-section">
+        <button className="notif-history-toggle" onClick={() => setShowNotifHistory((v) => !v)}>
+          {t("profile.notif.history")} {showNotifHistory ? "▲" : "▼"}
+        </button>
+        {showNotifHistory && (
+          <div className="notif-history-list">
+            {notifHistory.length === 0
+              ? <p className="notif-history-empty">{t("profile.notif.history.empty")}</p>
+              : notifHistory.map((n, i) => (
+                  <div key={i} className="notif-history-item">
+                    <div className="notif-history-title">{n.title}</div>
+                    <div className="notif-history-body">{n.body}</div>
+                    <div className="notif-history-time">{new Date(n.ts).toLocaleString(t("date.locale"), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                  </div>
+                ))
+            }
+          </div>
+        )}
+      </div>
+
       <button className="logout-btn" onClick={handleLogout}>{t("profile.logout")}</button>
     </div>
   );
@@ -1930,7 +2042,7 @@ export default function App() {
               email: i.email || "—",
               mascot: i.mascotSuggested || "nubi",
               role: i.role,
-              createdAt: i.createdAt,
+              expiresAt: i.expiresAt,
             })));
             const done = localStorage.getItem("cozy-onboarding-done");
             setStage(done ? "app" : "onboarding");

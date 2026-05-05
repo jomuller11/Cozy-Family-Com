@@ -187,6 +187,17 @@ export async function sendMessage({ familyId, authorId, authorName, authorMascot
   return data;
 }
 
+export async function updateMessage(id, text) {
+  const { data, errors } = await client.models.Message.update({ id, text });
+  if (errors?.length) throw new Error(errors.map((e) => e.message).join(", "));
+  return data;
+}
+
+export async function deleteMessage(id) {
+  const { errors } = await client.models.Message.delete({ id });
+  if (errors?.length) throw new Error(errors.map((e) => e.message).join(", "));
+}
+
 /** Real-time subscription al chat */
 export function subscribeMessages(familyId, callback) {
   const sub = client.models.Message.observeQuery({

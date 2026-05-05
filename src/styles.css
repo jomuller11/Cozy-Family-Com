@@ -1458,4 +1458,149 @@
         box-shadow: 0 6px 0 #8a4f3a;
       }
       .cozy-root[data-theme="dark"] .code-display:active { box-shadow: 0 4px 0 #8a4f3a; }
+
+      /* ─── Sprint 2: Chat edit/delete ─── */
+      .bubble-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+        justify-content: flex-end;
+      }
+      .bact-edit, .bact-del, .bact-del-confirm, .bact-save, .bact-cancel {
+        font-family: var(--font-body, 'Nunito', sans-serif);
+        font-size: 11px;
+        font-weight: 700;
+        border: none;
+        border-radius: 20px;
+        padding: 4px 12px;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      .bact-edit {
+        background: var(--sky);
+        color: var(--ink);
+      }
+      .bact-del {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .bact-del-confirm {
+        background: var(--danger);
+        color: #fff;
+      }
+      .bact-save {
+        background: var(--moss);
+        color: #fff;
+      }
+      .bact-cancel {
+        background: var(--line);
+        color: var(--ink-soft);
+      }
+      .bact-edit:active, .bact-del:active, .bact-del-confirm:active,
+      .bact-save:active, .bact-cancel:active { opacity: 0.7; }
+
+      .bubble-edit-input {
+        width: 100%;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      .bubble-edit-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+
+      /* ─── Sprint 2: Field validation ─── */
+      .field-error > .lbl { color: var(--danger); }
+      .field-error .cozy-input,
+      .field-error select,
+      .field-error textarea {
+        border-color: var(--danger) !important;
+        box-shadow: 0 0 0 2px rgba(193,74,94,0.15);
+      }
+      .field-required {
+        color: var(--danger);
+        font-weight: 800;
+      }
+
+      /* ─── Sprint 2: Invite expiry ─── */
+      .invite-expires {
+        font-size: 11px;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+
+      /* ─── Sprint 2: Notification history ─── */
+      .notif-history-section {
+        margin-bottom: 12px;
+      }
+      .notif-history-toggle {
+        width: 100%;
+        background: var(--paper-2);
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 16px;
+        font-family: var(--font-body, 'Nunito', sans-serif);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.15s;
+      }
+      .notif-history-toggle:active { background: var(--line); }
+      .notif-history-list {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .notif-history-item {
+        background: var(--cream);
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 14px;
+      }
+      .notif-history-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+      .notif-history-body {
+        font-size: 13px;
+        color: var(--ink-soft);
+        margin-bottom: 4px;
+      }
+      .notif-history-time {
+        font-size: 11px;
+        color: var(--ink-soft);
+        opacity: 0.7;
+      }
+      .notif-history-empty {
+        font-size: 13px;
+        color: var(--ink-soft);
+        text-align: center;
+        padding: 12px 0;
+        margin: 0;
+      }
+
+      /* ─── Sprint 2: Dark mode overrides ─── */
+      .cozy-root[data-theme="dark"] .bact-edit {
+        background: var(--sky);
+        color: var(--paper);
+      }
+      .cozy-root[data-theme="dark"] .bact-cancel {
+        background: var(--paper-2);
+        color: var(--ink-soft);
+      }
+      .cozy-root[data-theme="dark"] .notif-history-toggle {
+        background: var(--paper-2);
+        border-color: var(--line);
+        color: var(--ink);
+      }
+      .cozy-root[data-theme="dark"] .notif-history-item {
+        background: var(--paper-2);
+        border-color: var(--line);
+      }
       .cozy-root[data-theme="dark"] .code-copy { color: var(--paper); opacity: 0.7; }

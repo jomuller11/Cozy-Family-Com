@@ -15,17 +15,33 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+async function appendNotifHistory(title, body) {
+  const cache = await caches.open("notif-history-v1");
+  const existing = await cache.match("/notif-history");
+  const history = existing ? await existing.json() : [];
+  history.unshift({ title, body, ts: Date.now() });
+  await cache.put("/notif-history", new Response(JSON.stringify(history.slice(0, 30)), {
+    headers: { "Content-Type": "application/json" },
+  }));
+}
+
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
   const title = data.title || "Cozy&Casa";
+  const body = data.body || "";
   const options = {
-    body: data.body || "",
+    body,
     icon: "./icon.svg",
     badge: "./icon.svg",
     data: { url: data.url || "/" },
     vibrate: [100, 50, 100],
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      appendNotifHistory(title, body),
+    ])
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
