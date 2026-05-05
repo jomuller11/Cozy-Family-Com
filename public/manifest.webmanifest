@@ -13,6 +13,13 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-dark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any",
+      "media": "(prefers-color-scheme: dark)"
     }
   ]
 }
