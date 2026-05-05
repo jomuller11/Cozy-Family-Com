@@ -507,7 +507,7 @@ const ActivityRow = ({ a }) => {
           <span className="act-title">{a.title}</span>
         </div>
         <div className="act-meta">
-          <span>{new Date(a.date).toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
+          <span>{new Date(a.date + "T00:00:00").toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
           <span className="dot-sep">·</span>
           <span>{a.time}</span>
           <span className="dot-sep">·</span>
