@@ -131,9 +131,9 @@ const UNKNOWN_FIELD_ERR = "not defined for input object type";
 export async function createActivity(activity) {
   const { data, errors } = await client.models.Activity.create(activity);
   if (!errors?.length) return data;
-  // If AppSync rejects reminder fields (schema not deployed yet), retry without them
+  // If AppSync rejects unknown fields (schema not deployed yet), retry stripping extras
   if (errors.some((e) => e.message?.includes(UNKNOWN_FIELD_ERR))) {
-    const { reminderAt, reminderSent, ...base } = activity;
+    const { reminderAt, reminderSent, reminderMinutes, recurrenceGroupId, recurrenceRule, ...base } = activity;
     const { data: d2, errors: e2 } = await client.models.Activity.create(base);
     if (e2?.length) throw new Error(e2.map((e) => e.message).join(", "));
     return d2;
@@ -145,7 +145,7 @@ export async function updateActivity(id, patch) {
   const { data, errors } = await client.models.Activity.update({ id, ...patch });
   if (!errors?.length) return data;
   if (errors.some((e) => e.message?.includes(UNKNOWN_FIELD_ERR))) {
-    const { reminderAt, reminderSent, ...base } = patch;
+    const { reminderAt, reminderSent, reminderMinutes, recurrenceGroupId, recurrenceRule, ...base } = patch;
     const { data: d2, errors: e2 } = await client.models.Activity.update({ id, ...base });
     if (e2?.length) throw new Error(e2.map((e) => e.message).join(", "));
     return d2;

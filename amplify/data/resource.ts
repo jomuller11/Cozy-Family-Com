@@ -113,6 +113,10 @@ const schema = a.schema({
       reminderMinutes: a.integer(),
       reminderSent: a.boolean(),
 
+      // Recurrence
+      recurrenceGroupId: a.string(),
+      recurrenceRule: a.enum(["weekly", "monthly"]),
+
       family: a.belongsTo("Family", "familyId"),
     })
     .secondaryIndexes((index) => [

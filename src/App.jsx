@@ -898,36 +898,47 @@ const LoadView = () => {
     setErr("");
     setSaving(true);
     try {
-      const title = form.title || (
+      const title = form.title?.trim() || (
         type === "examen" ? (form.subject || t("load.type.examen"))
         : type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : t("load.type.gimnasia")
       );
       const actDate = form.date || localIso(new Date());
       const actTime = form.time || "09:00";
-      const reminderAt = computeReminderAt(actDate, actTime, form.reminder ?? "15");
-      await db.createActivity({
-        familyId: familyData.id,
-        type,
-        title,
-        date: actDate,
-        time: actTime,
-        ownerId: user.userId,
-        ownerName: user.name,
-        mascot: user.mascot,
-        subject: form.subject,
-        note: form.note,
-        venue: form.venue,
-        rival: form.rival,
-        address: form.address,
-        result: form.result,
-        place: form.place,
-        scoreSuelo: form.suelo,
-        scoreViga: form.viga,
-        scoreParalelas: form.paralelas,
-        scoreSalto: form.salto,
-        ...(reminderAt && { reminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
+      const recurrence = form.recurrence || "none";
+      const recurrenceGroupId = recurrence !== "none" ? crypto.randomUUID() : null;
+      const count = recurrence === "weekly" ? 12 : recurrence === "monthly" ? 6 : 1;
+      const occurrences = Array.from({ length: count }, (_, i) => {
+        const d = new Date(actDate + "T00:00:00");
+        if (recurrence === "weekly") d.setDate(d.getDate() + 7 * i);
+        else if (recurrence === "monthly") d.setMonth(d.getMonth() + i);
+        const occDate = localIso(d);
+        const occReminderAt = computeReminderAt(occDate, actTime, form.reminder ?? "15");
+        return {
+          familyId: familyData.id,
+          type,
+          title,
+          date: occDate,
+          time: actTime,
+          ownerId: user.userId,
+          ownerName: user.name,
+          mascot: user.mascot,
+          subject: form.subject,
+          note: form.note,
+          venue: form.venue,
+          rival: form.rival,
+          address: form.address,
+          result: form.result,
+          place: form.place,
+          scoreSuelo: form.suelo,
+          scoreViga: form.viga,
+          scoreParalelas: form.paralelas,
+          scoreSalto: form.salto,
+          ...(recurrenceGroupId && { recurrenceGroupId, recurrenceRule: recurrence }),
+          ...(occReminderAt && { reminderAt: occReminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
+        };
       });
+      await Promise.all(occurrences.map((occ) => db.createActivity(occ)));
       db.sendPushNotification({
         familyId: familyData.id,
         title: user.name,
@@ -1049,6 +1060,14 @@ const LoadView = () => {
           <input className="cozy-input" value={form.title || ""} onChange={(e) => upd("title", e.target.value)} placeholder={t("form.title.ph")} />
         </Field>
 
+        <Field label={t("form.recurrence")}>
+          <select className="cozy-input" value={form.recurrence || "none"} onChange={(e) => upd("recurrence", e.target.value)}>
+            <option value="none">{t("form.recurrence.none")}</option>
+            <option value="weekly">{t("form.recurrence.weekly")}</option>
+            <option value="monthly">{t("form.recurrence.monthly")}</option>
+          </select>
+        </Field>
+
         <Field label={t("form.reminder")}>
           <select className="cozy-input" value={form.reminder ?? "15"} onChange={(e) => upd("reminder", e.target.value)}>
             <option value="0">{t("form.reminder.none")}</option>
@@ -1071,8 +1090,10 @@ const LoadView = () => {
 // EDIT ACTIVITY VIEW
 // ─────────────────────────────────────────────────────────────
 const EditActivityView = () => {
-  const { editingActivity, setEditingActivity, t } = useApp();
+  const { editingActivity, setEditingActivity, activities, t } = useApp();
   const a = editingActivity;
+  const isRecurring = !!a.recurrenceGroupId;
+  const [scope, setScope] = useState("this");
   const [form, setForm] = useState({
     title: a.title || "",
     date: a.date || "",
@@ -1107,10 +1128,8 @@ const EditActivityView = () => {
         : a.type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : a.title
       );
-      const reminderAt = computeReminderAt(form.date, form.time, form.reminder);
-      await db.updateActivity(a.id, {
+      const sharedPatch = {
         title,
-        date: form.date,
         time: form.time,
         subject: form.subject || null,
         note: form.note || null,
@@ -1123,8 +1142,24 @@ const EditActivityView = () => {
         scoreViga: form.viga || null,
         scoreParalelas: form.paralelas || null,
         scoreSalto: form.salto || null,
-        ...(reminderAt && { reminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
-      });
+      };
+      if (isRecurring && scope === "all") {
+        const siblings = activities.filter((oa) => oa.recurrenceGroupId === a.recurrenceGroupId);
+        await Promise.all(siblings.map((oa) => {
+          const occReminderAt = computeReminderAt(oa.date, form.time, form.reminder);
+          return db.updateActivity(oa.id, {
+            ...sharedPatch,
+            ...(occReminderAt && { reminderAt: occReminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
+          });
+        }));
+      } else {
+        const reminderAt = computeReminderAt(form.date, form.time, form.reminder);
+        await db.updateActivity(a.id, {
+          ...sharedPatch,
+          date: form.date,
+          ...(reminderAt && { reminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
+        });
+      }
       setEditingActivity(null);
     } catch (e) {
       setErr(e.message || t("error.generic"));
@@ -1136,7 +1171,12 @@ const EditActivityView = () => {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await db.deleteActivity(a.id);
+      if (isRecurring && scope === "all") {
+        const siblings = activities.filter((oa) => oa.recurrenceGroupId === a.recurrenceGroupId);
+        await Promise.all(siblings.map((oa) => db.deleteActivity(oa.id)));
+      } else {
+        await db.deleteActivity(a.id);
+      }
       setEditingActivity(null);
     } catch (e) {
       setErr(e.message || t("error.generic"));
@@ -1164,6 +1204,16 @@ const EditActivityView = () => {
         <Mascot name={a.mascot || "nubi"} size={32} />
         <span className="act-owner-name">{a.ownerName || a.owner}</span>
       </div>
+
+      {isRecurring && (
+        <div className="recurrence-bar">
+          <span className="recurrence-badge">{t("edit.recurrence.badge")}</span>
+          <div className="seg-control recurrence-scope">
+            <button className={`seg ${scope === "this" ? "seg-on" : ""}`} onClick={() => setScope("this")}>{t("edit.recurrence.scope.this")}</button>
+            <button className={`seg ${scope === "all" ? "seg-on" : ""}`} onClick={() => setScope("all")}>{t("edit.recurrence.scope.all")}</button>
+          </div>
+        </div>
+      )}
 
       <div className="form-card">
         {a.type === "examen" && (
@@ -1232,7 +1282,7 @@ const EditActivityView = () => {
 
         {confirmDelete ? (
           <div className="delete-confirm">
-            <p>{t("edit.delete.confirm")}</p>
+            <p>{isRecurring && scope === "all" ? t("edit.delete.confirm.all") : t("edit.delete.confirm")}</p>
             <div className="delete-confirm-btns">
               <button className="danger-btn" onClick={handleDelete} disabled={deleting}>
                 {deleting ? t("edit.deleting") : t("edit.delete.yes")}

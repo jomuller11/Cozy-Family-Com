@@ -686,6 +686,11 @@
       .dot-voley { background: var(--peach-deep); }
       .dot-gimnasia { background: var(--berry); }
 
+      /* recurrence bar in edit view */
+      .recurrence-bar { display: flex; flex-direction: column; gap: 8px; margin: 0 16px 12px; }
+      .recurrence-badge { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+      .recurrence-scope { margin-top: 0; }
+
       /* month preview sheet */
       .month-preview-card { text-align: left; padding-top: 20px; }
       .month-preview-date { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 14px; }
