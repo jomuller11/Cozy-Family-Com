@@ -188,6 +188,8 @@ const MASCOT_LABELS = {
   pipo: "Pipo", mishi: "Mishi", toto: "Toto", momo: "Momo",
 };
 
+const localIso = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fmtDate = (d, locale = "es-AR") =>
   d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
 const sameDay = (a, b) =>
@@ -526,7 +528,7 @@ const HomeView = () => {
   const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t } = useApp();
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = localIso(today);
   const todays = activities.filter((a) => a.date === todayStr).sort((a, b) => a.time.localeCompare(b.time));
   const allUpcoming = activities
     .filter((a) => a.date > todayStr)
@@ -615,7 +617,7 @@ const HomeView = () => {
 // ─────────────────────────────────────────────────────────────
 const DayView = ({ day, acts }) => {
   const { t } = useApp();
-  const ds = day.toISOString().slice(0, 10);
+  const ds = localIso(day);
   const todays = acts.filter((a) => a.date === ds).sort((a, b) => a.time.localeCompare(b.time));
   if (todays.length === 0) {
     return (
@@ -636,7 +638,7 @@ const WeekView = ({ day, acts }) => {
     <div className="week-scroll">
       <div className="week-grid">
         {days.map((d) => {
-          const ds = d.toISOString().slice(0, 10);
+          const ds = localIso(d);
           const dayActs = acts.filter((a) => a.date === ds);
           const isT = sameDay(d, new Date());
           return (
@@ -680,7 +682,7 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
       <div className="month-grid">
         {cells.map((d, idx) => {
           if (!d) return <div key={`e-${idx}`} className="mc empty" />;
-          const ds = d.toISOString().slice(0, 10);
+          const ds = localIso(d);
           const dayActs = acts.filter((a) => a.date === ds);
           const isT = sameDay(d, new Date());
           return (
@@ -877,7 +879,7 @@ const LoadView = () => {
         : type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : t("load.type.gimnasia")
       );
-      const actDate = form.date || new Date().toISOString().slice(0, 10);
+      const actDate = form.date || localIso(new Date());
       const actTime = form.time || "09:00";
       const reminderAt = computeReminderAt(actDate, actTime, form.reminder ?? "15");
       await db.createActivity({
