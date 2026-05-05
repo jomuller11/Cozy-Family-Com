@@ -3,6 +3,7 @@ import { defineFunction } from "@aws-amplify/backend";
 export const reminderHandler = defineFunction({
   name: "reminderHandler",
   entry: "./handler.ts",
+  resourceGroupName: "data",
   environment: {
     VAPID_PUBLIC_KEY:
       "BMLv43bFoqZ9GkcF_P-JD4s2MY0DxDkPFV3RyicEhDC1B7EsyVcupMfCPRWQZsB9wU8pcxxdMFDgH5LDwPuGutI",
