@@ -117,6 +117,11 @@ export const translations = {
     "form.score.paralelas":"paralelas",
     "form.score.salto":    "salto",
     "form.saving":         "guardando...",
+    "form.reminder":       "recordatorio",
+    "form.reminder.none":  "sin recordatorio",
+    "form.reminder.15":    "15 min antes",
+    "form.reminder.30":    "30 min antes",
+    "form.reminder.60":    "1 hora antes",
 
     // Loading states
     "loading.entering":   "entrando...",
@@ -333,6 +338,11 @@ export const translations = {
     "form.score.paralelas":"bars",
     "form.score.salto":    "vault",
     "form.saving":         "saving...",
+    "form.reminder":       "reminder",
+    "form.reminder.none":  "no reminder",
+    "form.reminder.15":    "15 min before",
+    "form.reminder.30":    "30 min before",
+    "form.reminder.60":    "1 hour before",
 
     // Loading states
     "loading.entering":   "entering...",

@@ -167,11 +167,19 @@ function urlBase64ToUint8Array(b64) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
-// Returns UTC ISO string for 15 min before the activity's local start time
-function computeReminderAt(date, time) {
-  if (!date || !time) return null;
+function computeReminderAt(date, time, minutes) {
+  const mins = Number(minutes);
+  if (!date || !time || !mins) return null;
   const start = new Date(`${date}T${time}:00`); // parsed as local time in browser
-  return new Date(start.getTime() - 15 * 60 * 1000).toISOString();
+  return new Date(start.getTime() - mins * 60 * 1000).toISOString();
+}
+
+function inferReminderMinutes(reminderAt, date, time) {
+  if (!reminderAt || !date || !time) return "0";
+  const diff = Math.round(
+    (new Date(`${date}T${time}:00`).getTime() - new Date(reminderAt).getTime()) / 60000
+  );
+  return ["15", "30", "60"].includes(String(diff)) ? String(diff) : "0";
 }
 
 const MASCOTS = ["nubi", "soli", "luma", "bubu", "pipo", "mishi", "toto", "momo"];
@@ -871,7 +879,7 @@ const LoadView = () => {
       );
       const actDate = form.date || new Date().toISOString().slice(0, 10);
       const actTime = form.time || "09:00";
-      const reminderAt = computeReminderAt(actDate, actTime);
+      const reminderAt = computeReminderAt(actDate, actTime, form.reminder ?? "15");
       await db.createActivity({
         familyId: familyData.id,
         type,
@@ -1011,6 +1019,15 @@ const LoadView = () => {
           </>
         )}
 
+        <Field label={t("form.reminder")}>
+          <select className="cozy-input" value={form.reminder ?? "15"} onChange={(e) => upd("reminder", e.target.value)}>
+            <option value="0">{t("form.reminder.none")}</option>
+            <option value="15">{t("form.reminder.15")}</option>
+            <option value="30">{t("form.reminder.30")}</option>
+            <option value="60">{t("form.reminder.60")}</option>
+          </select>
+        </Field>
+
         {err && <div className="err-pill">{err}</div>}
         <button className="primary-btn full" onClick={save} disabled={saving}>
           {saving ? t("form.saving") : t("load.save")}
@@ -1040,6 +1057,7 @@ const EditActivityView = () => {
     viga: a.scoreViga || "",
     paralelas: a.scoreParalelas || "",
     salto: a.scoreSalto || "",
+    reminder: inferReminderMinutes(a.reminderAt, a.date, a.time),
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1057,7 +1075,7 @@ const EditActivityView = () => {
         a.type === "examen" ? (form.subject || a.title)
         : a.type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
         : a.title;
-      const reminderAt = computeReminderAt(form.date, form.time);
+      const reminderAt = computeReminderAt(form.date, form.time, form.reminder);
       await db.updateActivity(a.id, {
         title,
         date: form.date,
@@ -1161,6 +1179,15 @@ const EditActivityView = () => {
             </div>
           </>
         )}
+
+        <Field label={t("form.reminder")}>
+          <select className="cozy-input" value={form.reminder} onChange={(e) => upd("reminder", e.target.value)}>
+            <option value="0">{t("form.reminder.none")}</option>
+            <option value="15">{t("form.reminder.15")}</option>
+            <option value="30">{t("form.reminder.30")}</option>
+            <option value="60">{t("form.reminder.60")}</option>
+          </select>
+        </Field>
 
         {err && <div className="err-pill">{err}</div>}
         <button className="primary-btn full" onClick={save} disabled={saving || deleting}>
