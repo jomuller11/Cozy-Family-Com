@@ -662,6 +662,8 @@ const WeekView = ({ day, acts }) => {
 
 const MonthView = ({ day, acts, setCursor, setView }) => {
   const { t } = useApp();
+  const [previewDay, setPreviewDay] = useState(null);
+  const locale = t("date.locale");
   const year = day.getFullYear();
   const month = day.getMonth();
   const first = new Date(year, month, 1);
@@ -672,6 +674,9 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
     ...Array.from({ length: last.getDate() }, (_, i) => new Date(year, month, i + 1)),
   ];
   const weekdays = t("agenda.weekdays");
+  const previewActs = previewDay
+    ? acts.filter((a) => a.date === localIso(previewDay)).sort((a, b) => a.time.localeCompare(b.time))
+    : [];
   return (
     <div className="month-grid-wrap">
       <div className="month-head">
@@ -689,12 +694,12 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
             <div
               key={ds}
               className={`mc ${isT ? "mc-today" : ""}`}
-              onClick={() => { setCursor(d); setView("dia"); }}
+              onClick={() => dayActs.length > 0 ? setPreviewDay(d) : (setCursor(d), setView("dia"))}
             >
               <span className="mc-num">{d.getDate()}</span>
               {dayActs.length > 0 && (
                 <div className="mc-dots">
-                  {dayActs.slice(0, 2).map((a) => (
+                  {dayActs.slice(0, 3).map((a) => (
                     <div key={a.id} className={`mc-dot dot-${a.type}`} />
                   ))}
                 </div>
@@ -703,6 +708,25 @@ const MonthView = ({ day, acts, setCursor, setView }) => {
           );
         })}
       </div>
+
+      {previewDay && (
+        <div className="modal-back" onClick={() => setPreviewDay(null)}>
+          <div className="modal-card month-preview-card" onClick={(e) => e.stopPropagation()}>
+            <p className="month-preview-date">
+              {fmtDate(previewDay, locale)}
+            </p>
+            <div className="month-preview-acts">
+              {previewActs.map((a) => <ActivityRow key={a.id} a={a} />)}
+            </div>
+            <button
+              className="ghost-btn full"
+              onClick={() => { setCursor(previewDay); setView("dia"); setPreviewDay(null); }}
+            >
+              {t("agenda.preview.see")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1021,6 +1045,10 @@ const LoadView = () => {
           </>
         )}
 
+        <Field label={t("form.title")}>
+          <input className="cozy-input" value={form.title || ""} onChange={(e) => upd("title", e.target.value)} placeholder={t("form.title.ph")} />
+        </Field>
+
         <Field label={t("form.reminder")}>
           <select className="cozy-input" value={form.reminder ?? "15"} onChange={(e) => upd("reminder", e.target.value)}>
             <option value="0">{t("form.reminder.none")}</option>
@@ -1046,6 +1074,7 @@ const EditActivityView = () => {
   const { editingActivity, setEditingActivity, t } = useApp();
   const a = editingActivity;
   const [form, setForm] = useState({
+    title: a.title || "",
     date: a.date || "",
     time: a.time || "",
     subject: a.subject || "",
@@ -1073,10 +1102,11 @@ const EditActivityView = () => {
     setErr("");
     setSaving(true);
     try {
-      const title =
+      const title = form.title?.trim() || (
         a.type === "examen" ? (form.subject || a.title)
         : a.type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
-        : a.title;
+        : a.title
+      );
       const reminderAt = computeReminderAt(form.date, form.time, form.reminder);
       await db.updateActivity(a.id, {
         title,
@@ -1181,6 +1211,10 @@ const EditActivityView = () => {
             </div>
           </>
         )}
+
+        <Field label={t("form.title")}>
+          <input className="cozy-input" value={form.title} onChange={(e) => upd("title", e.target.value)} placeholder={t("form.title.ph")} />
+        </Field>
 
         <Field label={t("form.reminder")}>
           <select className="cozy-input" value={form.reminder} onChange={(e) => upd("reminder", e.target.value)}>

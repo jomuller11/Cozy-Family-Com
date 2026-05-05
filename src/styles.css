@@ -686,6 +686,11 @@
       .dot-voley { background: var(--peach-deep); }
       .dot-gimnasia { background: var(--berry); }
 
+      /* month preview sheet */
+      .month-preview-card { text-align: left; padding-top: 20px; }
+      .month-preview-date { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 14px; }
+      .month-preview-acts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
       /* ===== CHAT ===== */
       .chat-page { padding: 24px 16px 110px; }
       .chat-head {

@@ -88,6 +88,7 @@ export const translations = {
     "agenda.view.week":    "semana",
     "agenda.view.month":   "mes",
     "agenda.day.empty":    "sin eventos para este día 🌿",
+    "agenda.preview.see":  "ver día completo",
     "agenda.weekdays":     ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"],
 
     // Chat
@@ -116,6 +117,8 @@ export const translations = {
     "form.score.viga":     "viga",
     "form.score.paralelas":"paralelas",
     "form.score.salto":    "salto",
+    "form.title":          "título (opcional)",
+    "form.title.ph":       "personalizar nombre...",
     "form.saving":         "guardando...",
     "form.reminder":       "recordatorio",
     "form.reminder.none":  "sin recordatorio",
@@ -309,6 +312,7 @@ export const translations = {
     "agenda.view.week":    "week",
     "agenda.view.month":   "month",
     "agenda.day.empty":    "no events for this day 🌿",
+    "agenda.preview.see":  "see full day",
     "agenda.weekdays":     ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
 
     // Chat
@@ -337,6 +341,8 @@ export const translations = {
     "form.score.viga":     "beam",
     "form.score.paralelas":"bars",
     "form.score.salto":    "vault",
+    "form.title":          "title (optional)",
+    "form.title.ph":       "customize name...",
     "form.saving":         "saving...",
     "form.reminder":       "reminder",
     "form.reminder.none":  "no reminder",
