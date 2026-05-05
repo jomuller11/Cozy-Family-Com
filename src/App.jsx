@@ -902,7 +902,7 @@ const LoadView = () => {
         scoreViga: form.viga,
         scoreParalelas: form.paralelas,
         scoreSalto: form.salto,
-        ...(reminderAt && { reminderAt, reminderSent: false }),
+        ...(reminderAt && { reminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
       });
       db.sendPushNotification({
         familyId: familyData.id,
@@ -1093,7 +1093,7 @@ const EditActivityView = () => {
         scoreViga: form.viga || null,
         scoreParalelas: form.paralelas || null,
         scoreSalto: form.salto || null,
-        ...(reminderAt && { reminderAt, reminderSent: false }),
+        ...(reminderAt && { reminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
       });
       setEditingActivity(null);
     } catch (e) {

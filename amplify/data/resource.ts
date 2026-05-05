@@ -110,6 +110,7 @@ const schema = a.schema({
 
       // Reminders
       reminderAt: a.datetime(),
+      reminderMinutes: a.integer(),
       reminderSent: a.boolean(),
 
       family: a.belongsTo("Family", "familyId"),

@@ -45,9 +45,12 @@ export const handler: ScheduledHandler = async () => {
     );
 
     if (subs.length > 0) {
+      const mins = activity.reminderMinutes as number | undefined;
+      const timeEs = mins && mins >= 60 ? "1 hora" : `${mins ?? 15} minutos`;
+      const timeEn = mins && mins >= 60 ? "1 hour" : `${mins ?? 15} min`;
       const payload = JSON.stringify({
         title: `⏰ ${title}`,
-        body: "Empieza en 15 minutos · Starts in 15 minutes",
+        body: `Empieza en ${timeEs} · Starts in ${timeEn}`,
       });
 
       await Promise.allSettled(
