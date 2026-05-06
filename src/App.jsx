@@ -200,6 +200,35 @@ function computeReminderAt(date, time, minutes) {
   return new Date(start.getTime() - mins * 60 * 1000).toISOString();
 }
 
+function exportToCalendar(activity) {
+  const [y, mo, d] = activity.date.split("-");
+  const [h, mi] = activity.time.split(":");
+  const pad = (n) => String(n).padStart(2, "0");
+  const dtStart = `${y}${mo}${d}T${h}${mi}00`;
+  const endDate = new Date(activity.date + "T" + activity.time + ":00");
+  endDate.setHours(endDate.getHours() + 1);
+  const dtEnd = `${endDate.getFullYear()}${pad(endDate.getMonth()+1)}${pad(endDate.getDate())}T${pad(endDate.getHours())}${pad(endDate.getMinutes())}00`;
+  const stamp = new Date().toISOString().replace(/[-:.]/g, "").slice(0,15) + "Z";
+  const lines = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Cozy&Casa//EN", "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${activity.id}@cozy-casa`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${activity.title}`,
+    activity.address ? `LOCATION:${activity.address}` : null,
+    (activity.note || activity.rival) ? `DESCRIPTION:${activity.note || ("vs " + activity.rival)}` : null,
+    "END:VEVENT", "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
+  const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const el = document.createElement("a");
+  el.href = url; el.download = `${activity.title.replace(/[^a-z0-9]/gi, "_")}.ics`;
+  document.body.appendChild(el); el.click();
+  document.body.removeChild(el); URL.revokeObjectURL(url);
+}
+
 function inferReminderMinutes(reminderAt, date, time) {
   if (!reminderAt || !date || !time) return "0";
   const diff = Math.round(
@@ -557,7 +586,7 @@ const ActivityRow = ({ a }) => {
 // HOME
 // ─────────────────────────────────────────────────────────────
 const HomeView = () => {
-  const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t, setShowStats } = useApp();
+  const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t } = useApp();
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const today = new Date();
   const todayStr = localIso(today);
@@ -578,7 +607,6 @@ const HomeView = () => {
           <button className="theme-toggle" onClick={toggleTheme} aria-label={t("theme.toggle")}>
             {theme === "light" ? "🌙" : "☀️"}
           </button>
-          <button className="stats-home-btn" onClick={() => setShowStats(true)}>📊</button>
           <div className="family-badge" onClick={() => setTab("perfil")}>
             <Mascot name={familyMascot} size={48} />
           </div>
@@ -1028,7 +1056,7 @@ const ParticipantPicker = ({ selected, onChange }) => {
 // STATS VIEW
 // ─────────────────────────────────────────────────────────────
 const StatsView = () => {
-  const { activities, family, setShowStats, t } = useApp();
+  const { activities, family, t } = useApp();
   const [filterUserId, setFilterUserId] = useState(null);
 
   const actOf = (a) =>
@@ -1063,8 +1091,7 @@ const StatsView = () => {
 
   return (
     <div className="page">
-      <header className="form-head">
-        <button className="back-btn" onClick={() => setShowStats(false)}>{t("back")}</button>
+      <header>
         <h1 className="display-h1">{t("stats.title")}</h1>
       </header>
 
@@ -1599,6 +1626,9 @@ const EditActivityView = () => {
         {err && <div className="err-pill">{err}</div>}
         <button className="primary-btn full" onClick={save} disabled={saving || deleting}>
           {saving ? t("form.saving") : t("edit.save")}
+        </button>
+        <button className="ghost-btn full cal-export-btn" onClick={() => exportToCalendar(a)}>
+          📅 {t("edit.export.calendar")}
         </button>
 
         {confirmDelete ? (
@@ -2203,16 +2233,16 @@ const ProfileView = () => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// NAV
+// NAV + FAB
 // ─────────────────────────────────────────────────────────────
 const Nav = () => {
   const { tab, setTab, editingActivity, setEditingActivity, t } = useApp();
   const items = [
     { id: "home",   label: t("nav.home"),    icon: "🏠" },
     { id: "chat",   label: t("nav.chat"),    icon: "💬" },
-    { id: "cargar", label: t("nav.load"),    icon: "✨", big: true },
-    { id: "perfil", label: t("nav.profile"), icon: "🌸" },
     { id: "agenda", label: t("nav.agenda"),  icon: "📅" },
+    { id: "perfil", label: t("nav.profile"), icon: "🌸" },
+    { id: "stats",  label: t("nav.stats"),   icon: "📊" },
   ];
   const handleNav = (id) => {
     if (editingActivity) setEditingActivity(null);
@@ -2223,7 +2253,7 @@ const Nav = () => {
       {items.map((it) => (
         <button
           key={it.id}
-          className={`nav-item ${tab === it.id && !editingActivity ? "nav-on" : ""} ${it.big ? "nav-big" : ""}`}
+          className={`nav-item ${tab === it.id && !editingActivity ? "nav-on" : ""}`}
           onClick={() => handleNav(it.id)}
         >
           <span className="nav-icon">{it.icon}</span>
@@ -2231,6 +2261,15 @@ const Nav = () => {
         </button>
       ))}
     </nav>
+  );
+};
+
+const FAB = () => {
+  const { setTab, setEditingActivity } = useApp();
+  return (
+    <button className="fab" onClick={() => { setEditingActivity(null); setTab("cargar"); }}>
+      <span>+</span>
+    </button>
   );
 };
 
@@ -2246,7 +2285,6 @@ export default function App() {
   const [allFamilies, setAllFamilies] = useState([]);
   const [tab, setTab] = useState("home");
   const [editingActivity, setEditingActivity] = useState(null);
-  const [showStats, setShowStats] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem("cozy-lang") || "es");
 
   const handleSetLang = (l) => {
@@ -2437,7 +2475,6 @@ export default function App() {
     isAdmin, familyMascot,
     refreshSession, loadMembers,
     online, pendingMsgs, setPendingMsgs,
-    showStats, setShowStats,
   };
 
   if (loading || stage === "loading") {
@@ -2464,18 +2501,18 @@ export default function App() {
               <OfflineBanner />
               {editingActivity ? (
                 <EditActivityView />
-              ) : showStats ? (
-                <StatsView />
               ) : (
                 <>
                   {tab === "home"   && <HomeView />}
                   {tab === "chat"   && <ChatView />}
                   {tab === "cargar" && <LoadView />}
-                  {tab === "perfil" && <ProfileView />}
                   {tab === "agenda" && <AgendaView />}
+                  {tab === "perfil" && <ProfileView />}
+                  {tab === "stats"  && <StatsView />}
                 </>
               )}
             </main>
+            {tab !== "cargar" && !editingActivity && <FAB />}
             <Nav />
           </>
         )}

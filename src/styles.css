@@ -1719,18 +1719,6 @@
         padding: 4px 2px;
       }
 
-      /* ─── Stats home button ─── */
-      .stats-home-btn {
-        background: none;
-        border: none;
-        font-size: 22px;
-        cursor: pointer;
-        padding: 4px 6px;
-        border-radius: 10px;
-        transition: background 0.15s;
-      }
-      .stats-home-btn:active { background: var(--line); }
-
       /* ─── Stats view ─── */
       .stats-filter {
         display: flex;
@@ -1835,3 +1823,43 @@
         color: var(--moss);
       }
       .cozy-root[data-theme="dark"] .stats-score-bar { background: var(--peach-deep); }
+
+      /* ─── FAB (Floating Action Button) ─── */
+      .fab {
+        position: fixed;
+        bottom: calc(72px + 18px);
+        right: 20px;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: var(--peach-deep);
+        color: #fff;
+        font-size: 32px;
+        font-weight: 300;
+        line-height: 1;
+        border: none;
+        box-shadow: 0 4px 0 #c07050, 0 8px 20px rgba(0,0,0,0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 90;
+        transition: transform 0.12s, box-shadow 0.12s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .fab:active {
+        transform: scale(0.92) translateY(2px);
+        box-shadow: 0 2px 0 #c07050, 0 4px 10px rgba(0,0,0,0.15);
+      }
+      .cozy-root[data-theme="dark"] .fab {
+        background: var(--peach-deep);
+        box-shadow: 0 4px 0 #8a4f3a, 0 8px 20px rgba(0,0,0,0.35);
+      }
+      .cozy-root[data-theme="dark"] .fab:active {
+        box-shadow: 0 2px 0 #8a4f3a, 0 4px 10px rgba(0,0,0,0.25);
+      }
+
+      /* ─── Calendar export button ─── */
+      .cal-export-btn {
+        margin-top: 4px;
+      }

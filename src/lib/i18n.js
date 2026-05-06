@@ -75,6 +75,7 @@ export const translations = {
     "nav.load":    "cargar",
     "nav.profile": "perfil",
     "nav.agenda":  "agenda",
+    "nav.stats":   "stats",
 
     // Agenda
     "agenda.title":        "agenda",
@@ -162,8 +163,9 @@ export const translations = {
     "load.goto.agenda":    "ir a la agenda →",
 
     // Edit
-    "edit.save":           "guardar cambios →",
-    "edit.delete":         "eliminar actividad",
+    "edit.save":             "guardar cambios →",
+    "edit.export.calendar":  "agregar al calendario",
+    "edit.delete":           "eliminar actividad",
     "edit.delete.confirm": "¿seguro que querés eliminar esta actividad?",
     "edit.delete.yes":     "sí, eliminar",
     "edit.deleting":       "eliminando...",
@@ -337,6 +339,7 @@ export const translations = {
     "nav.load":    "add",
     "nav.profile": "profile",
     "nav.agenda":  "agenda",
+    "nav.stats":   "stats",
 
     // Agenda
     "agenda.title":        "agenda",
@@ -424,8 +427,9 @@ export const translations = {
     "load.goto.agenda":    "go to agenda →",
 
     // Edit
-    "edit.save":           "save changes →",
-    "edit.delete":         "delete activity",
+    "edit.save":             "save changes →",
+    "edit.export.calendar":  "add to calendar",
+    "edit.delete":           "delete activity",
     "edit.delete.confirm": "are you sure you want to delete this activity?",
     "edit.delete.yes":     "yes, delete",
     "edit.deleting":       "deleting...",
