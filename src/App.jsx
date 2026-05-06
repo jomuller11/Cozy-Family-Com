@@ -200,7 +200,7 @@ function computeReminderAt(date, time, minutes) {
   return new Date(start.getTime() - mins * 60 * 1000).toISOString();
 }
 
-async function exportToCalendar(activity) {
+function exportToCalendar(activity) {
   const [y, mo, d] = activity.date.split("-");
   const [h, mi] = activity.time.split(":");
   const pad = (n) => String(n).padStart(2, "0");
@@ -224,24 +224,23 @@ async function exportToCalendar(activity) {
   ].filter(Boolean).join("\r\n");
 
   const safeName = activity.title.replace(/[^a-z0-9]/gi, "_");
-  const file = new File([lines], `${safeName}.ics`, { type: "text/calendar" });
-
-  // iOS Safari / PWA: Web Share API triggers native share sheet → "Add to Calendar"
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: activity.title });
-      return;
-    } catch (e) {
-      if (e.name === "AbortError") return; // user cancelled — don't fall through
-    }
-  }
-
-  // Desktop fallback: trigger file download
-  const url = URL.createObjectURL(new Blob([lines], { type: "text/calendar" }));
+  const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
   const el = document.createElement("a");
-  el.href = url; el.download = `${safeName}.ics`;
-  document.body.appendChild(el); el.click();
-  document.body.removeChild(el); URL.revokeObjectURL(url);
+  el.href = url;
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (!isIOS) {
+    // Desktop / Android: force file download
+    el.download = `${safeName}.ics`;
+  }
+  // iOS: no download attribute — WKWebView intercepts text/calendar
+  // and shows the native "Add to Calendar" dialog directly
+
+  document.body.appendChild(el);
+  el.click();
+  document.body.removeChild(el);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
 function inferReminderMinutes(reminderAt, date, time) {
