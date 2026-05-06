@@ -243,6 +243,19 @@ export const translations = {
     "offline.msg.pending":  "pendiente",
     "load.queued":          "sin conexión — la actividad se publicará al reconectar",
 
+    // Stats
+    "stats.title":             "estadísticas",
+    "stats.filter.all":        "todos",
+    "stats.voley.title":       "voley",
+    "stats.voley.played":      "{n} partido(s)",
+    "stats.gimnasia.title":    "gimnasia",
+    "stats.gimnasia.events":   "{n} evento(s)",
+    "stats.examen.title":      "exámenes",
+    "stats.examen.count":      "{n} examen(es)",
+    "stats.empty":             "sin actividades todavía para este integrante",
+    "stats.no_result":         "sin resultado",
+    "activity.participants":   "participantes",
+
     // Language
     "lang.es": "ES",
     "lang.en": "EN",
@@ -491,6 +504,19 @@ export const translations = {
     "offline.banner":       "offline · changes will sync when reconnected",
     "offline.msg.pending":  "pending",
     "load.queued":          "offline — activity will sync when reconnected",
+
+    // Stats
+    "stats.title":             "stats",
+    "stats.filter.all":        "all",
+    "stats.voley.title":       "volleyball",
+    "stats.voley.played":      "{n} game(s)",
+    "stats.gimnasia.title":    "gymnastics",
+    "stats.gimnasia.events":   "{n} event(s)",
+    "stats.examen.title":      "exams",
+    "stats.examen.count":      "{n} exam(s)",
+    "stats.empty":             "no activities yet for this member",
+    "stats.no_result":         "no result",
+    "activity.participants":   "participants",
 
     // Language
     "lang.es": "ES",

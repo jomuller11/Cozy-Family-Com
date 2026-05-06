@@ -557,7 +557,7 @@ const ActivityRow = ({ a }) => {
 // HOME
 // ─────────────────────────────────────────────────────────────
 const HomeView = () => {
-  const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t } = useApp();
+  const { user, family, activities, messages, familyMascot, setTab, toggleTheme, theme, t, setShowStats } = useApp();
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const today = new Date();
   const todayStr = localIso(today);
@@ -578,6 +578,7 @@ const HomeView = () => {
           <button className="theme-toggle" onClick={toggleTheme} aria-label={t("theme.toggle")}>
             {theme === "light" ? "🌙" : "☀️"}
           </button>
+          <button className="stats-home-btn" onClick={() => setShowStats(true)}>📊</button>
           <div className="family-badge" onClick={() => setTab("perfil")}>
             <Mascot name={familyMascot} size={48} />
           </div>
@@ -1001,6 +1002,165 @@ const ChatView = () => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// PARTICIPANT PICKER
+// ─────────────────────────────────────────────────────────────
+const ParticipantPicker = ({ selected, onChange }) => {
+  const { family } = useApp();
+  const toggle = (userId) => onChange(
+    selected.includes(userId) ? selected.filter((id) => id !== userId) : [...selected, userId]
+  );
+  return (
+    <div className="participant-picker">
+      {family.filter((m) => m.status !== "inactivo").map((m) => (
+        <button key={m.id} type="button"
+          className={`pp-chip ${selected.includes(m.id) ? "pp-on" : ""}`}
+          onClick={() => toggle(m.id)}
+        >
+          <Mascot name={m.mascot} size={36} blink={false} />
+          <span>{m.name.split(" ")[0]}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// STATS VIEW
+// ─────────────────────────────────────────────────────────────
+const StatsView = () => {
+  const { activities, family, setShowStats, t } = useApp();
+  const [filterUserId, setFilterUserId] = useState(null);
+
+  const actOf = (a) =>
+    a.participantIds?.length
+      ? a.participantIds
+      : [a.ownerId];
+
+  const filtered = filterUserId
+    ? activities.filter((a) => actOf(a).includes(filterUserId))
+    : activities;
+
+  const past = (type) => filtered
+    .filter((a) => a.type === type)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const voley   = past("voley");
+  const gim     = past("gimnasia");
+  const examen  = past("examen");
+
+  const avgScore = (key) => {
+    const vals = gim.map((a) => parseFloat(a[key])).filter((v) => !isNaN(v));
+    return vals.length ? (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2) : null;
+  };
+  const scoreKeys = [
+    { key: "scoreSuelo",     label: t("form.score.suelo") },
+    { key: "scoreViga",      label: t("form.score.viga") },
+    { key: "scoreParalelas", label: t("form.score.paralelas") },
+    { key: "scoreSalto",     label: t("form.score.salto") },
+  ];
+  const hasGimScores = scoreKeys.some(({ key }) => avgScore(key) !== null);
+  const empty = voley.length === 0 && gim.length === 0 && examen.length === 0;
+
+  return (
+    <div className="page">
+      <header className="form-head">
+        <button className="back-btn" onClick={() => setShowStats(false)}>{t("back")}</button>
+        <h1 className="display-h1">{t("stats.title")}</h1>
+      </header>
+
+      <div className="stats-filter">
+        <button className={`pp-chip ${!filterUserId ? "pp-on" : ""}`} onClick={() => setFilterUserId(null)}>
+          <span className="pp-all-label">{t("stats.filter.all")}</span>
+        </button>
+        {family.filter((m) => m.status !== "inactivo").map((m) => (
+          <button key={m.id} className={`pp-chip ${filterUserId === m.id ? "pp-on" : ""}`} onClick={() => setFilterUserId(m.id)}>
+            <Mascot name={m.mascot} size={32} blink={false} />
+            <span>{m.name.split(" ")[0]}</span>
+          </button>
+        ))}
+      </div>
+
+      {empty && (
+        <div className="empty-card" style={{ marginTop: 40 }}>
+          <Mascot name="luma" size={64} />
+          <p>{t("stats.empty")}</p>
+        </div>
+      )}
+
+      {voley.length > 0 && (
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">🏐 {t("stats.voley.title")}</h2>
+            <span className="count-pill">{t("stats.voley.played", { n: voley.length })}</span>
+          </div>
+          <div className="stats-list">
+            {voley.slice(0, 8).map((a) => (
+              <div key={a.id} className="stats-row">
+                <span className="stats-date">{new Date(a.date + "T00:00:00").toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
+                <span className="stats-rival">{a.rival ? `vs ${a.rival}` : "—"}</span>
+                <span className={`stats-result ${a.result ? "" : "stats-result-empty"}`}>{a.result || t("stats.no_result")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {gim.length > 0 && (
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">🤸 {t("stats.gimnasia.title")}</h2>
+            <span className="count-pill">{t("stats.gimnasia.events", { n: gim.length })}</span>
+          </div>
+          {hasGimScores && (
+            <div className="stats-scores">
+              {scoreKeys.map(({ key, label }) => {
+                const val = avgScore(key);
+                if (!val) return null;
+                return (
+                  <div key={key} className="stats-score-row">
+                    <span className="stats-score-label">{label}</span>
+                    <div className="stats-score-bar-wrap">
+                      <div className="stats-score-bar" style={{ width: `${Math.min(parseFloat(val) * 10, 100)}%` }} />
+                    </div>
+                    <span className="stats-score-val">{val}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="stats-list" style={{ marginTop: hasGimScores ? 12 : 0 }}>
+            {gim.slice(0, 5).map((a) => (
+              <div key={a.id} className="stats-row">
+                <span className="stats-date">{new Date(a.date + "T00:00:00").toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
+                <span className="stats-rival">{a.place || "—"}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {examen.length > 0 && (
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">📝 {t("stats.examen.title")}</h2>
+            <span className="count-pill">{t("stats.examen.count", { n: examen.length })}</span>
+          </div>
+          <div className="stats-list">
+            {examen.slice(0, 8).map((a) => (
+              <div key={a.id} className="stats-row">
+                <span className="stats-date">{new Date(a.date + "T00:00:00").toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
+                <span className="stats-rival">{a.subject || a.title}</span>
+                {a.note && <span className="stats-result">{a.note}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // CARGAR ACTIVIDAD
 // ─────────────────────────────────────────────────────────────
 const Field = ({ label, children, error }) => (
@@ -1019,8 +1179,12 @@ const LoadView = () => {
   const [err, setErr] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [queuedOffline, setQueuedOffline] = useState(false);
+  const [participants, setParticipants] = useState(() => user?.userId ? [user.userId] : []);
 
-  const reset = () => { setType(null); setForm({}); setDone(false); setErr(""); setFieldErrors({}); setQueuedOffline(false); };
+  const reset = () => {
+    setType(null); setForm({}); setDone(false); setErr(""); setFieldErrors({}); setQueuedOffline(false);
+    setParticipants(user?.userId ? [user.userId] : []);
+  };
   const upd = (k, v) => { setForm((prev) => ({ ...prev, [k]: v })); setFieldErrors((prev) => ({ ...prev, [k]: false })); };
 
   const save = async () => {
@@ -1074,6 +1238,7 @@ const LoadView = () => {
           scoreSalto: form.salto,
           ...(recurrenceGroupId && { recurrenceGroupId, recurrenceRule: recurrence }),
           ...(occReminderAt && { reminderAt: occReminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
+          participantIds: participants.length ? participants : [user.userId],
         };
       });
       if (!online) {
@@ -1221,6 +1386,10 @@ const LoadView = () => {
           </select>
         </Field>
 
+        <Field label={t("activity.participants")}>
+          <ParticipantPicker selected={participants} onChange={setParticipants} />
+        </Field>
+
         {err && <div className="err-pill">{err}</div>}
         <button className="primary-btn full" onClick={save} disabled={saving}>
           {saving ? t("form.saving") : t("load.save")}
@@ -1255,6 +1424,9 @@ const EditActivityView = () => {
     salto: a.scoreSalto || "",
     reminder: inferReminderMinutes(a.reminderAt, a.date, a.time),
   });
+  const [participants, setParticipants] = useState(
+    a.participantIds?.length ? a.participantIds : [a.ownerId]
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1286,6 +1458,7 @@ const EditActivityView = () => {
         scoreViga: form.viga || null,
         scoreParalelas: form.paralelas || null,
         scoreSalto: form.salto || null,
+        participantIds: participants.length ? participants : [a.ownerId],
       };
       if (isRecurring && scope === "all") {
         const siblings = activities.filter((oa) => oa.recurrenceGroupId === a.recurrenceGroupId);
@@ -1417,6 +1590,10 @@ const EditActivityView = () => {
             <option value="30">{t("form.reminder.30")}</option>
             <option value="60">{t("form.reminder.60")}</option>
           </select>
+        </Field>
+
+        <Field label={t("activity.participants")}>
+          <ParticipantPicker selected={participants} onChange={setParticipants} />
         </Field>
 
         {err && <div className="err-pill">{err}</div>}
@@ -2069,6 +2246,7 @@ export default function App() {
   const [allFamilies, setAllFamilies] = useState([]);
   const [tab, setTab] = useState("home");
   const [editingActivity, setEditingActivity] = useState(null);
+  const [showStats, setShowStats] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem("cozy-lang") || "es");
 
   const handleSetLang = (l) => {
@@ -2259,6 +2437,7 @@ export default function App() {
     isAdmin, familyMascot,
     refreshSession, loadMembers,
     online, pendingMsgs, setPendingMsgs,
+    showStats, setShowStats,
   };
 
   if (loading || stage === "loading") {
@@ -2285,6 +2464,8 @@ export default function App() {
               <OfflineBanner />
               {editingActivity ? (
                 <EditActivityView />
+              ) : showStats ? (
+                <StatsView />
               ) : (
                 <>
                   {tab === "home"   && <HomeView />}

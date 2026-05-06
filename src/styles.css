@@ -1682,3 +1682,156 @@
       }
       .cozy-root[data-theme="dark"] .toggle-slider { background: var(--paper-2); }
       .cozy-root[data-theme="dark"] .toggle-switch input:checked + .toggle-slider { background: var(--moss); }
+
+      /* ─── Participant picker ─── */
+      .participant-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .pp-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        background: var(--paper-2);
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+        min-width: 52px;
+      }
+      .pp-chip:not(.pp-on) { opacity: 0.55; }
+      .pp-chip.pp-on {
+        border-color: var(--moss);
+        background: rgba(107, 154, 120, 0.12);
+        color: var(--moss-deep);
+        opacity: 1;
+      }
+      .pp-all-label {
+        font-size: 13px;
+        font-weight: 800;
+        padding: 4px 2px;
+      }
+
+      /* ─── Stats home button ─── */
+      .stats-home-btn {
+        background: none;
+        border: none;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 10px;
+        transition: background 0.15s;
+      }
+      .stats-home-btn:active { background: var(--line); }
+
+      /* ─── Stats view ─── */
+      .stats-filter {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 0 12px;
+        scrollbar-width: none;
+      }
+      .stats-filter::-webkit-scrollbar { display: none; }
+      .stats-filter .pp-chip { flex-shrink: 0; }
+
+      .stats-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .stats-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+      }
+      .stats-row:last-child { border-bottom: none; }
+      .stats-date {
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 700;
+        min-width: 48px;
+        flex-shrink: 0;
+      }
+      .stats-rival {
+        color: var(--ink);
+        font-weight: 600;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .stats-result {
+        color: var(--moss-deep);
+        font-weight: 700;
+        font-size: 12px;
+        flex-shrink: 0;
+        text-align: right;
+      }
+      .stats-result-empty {
+        color: var(--ink-soft);
+        font-weight: 400;
+        font-style: italic;
+      }
+
+      /* ─── Gymnastic score bars ─── */
+      .stats-scores {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+      .stats-score-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .stats-score-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        min-width: 72px;
+      }
+      .stats-score-bar-wrap {
+        flex: 1;
+        height: 8px;
+        background: var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .stats-score-bar {
+        height: 100%;
+        background: var(--peach);
+        border-radius: 8px;
+        transition: width 0.4s ease;
+      }
+      .stats-score-val {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--ink);
+        min-width: 36px;
+        text-align: right;
+      }
+
+      /* ─── Stats dark mode ─── */
+      .cozy-root[data-theme="dark"] .pp-chip {
+        background: var(--paper-2);
+        border-color: var(--line);
+        color: var(--ink-soft);
+      }
+      .cozy-root[data-theme="dark"] .pp-chip.pp-on {
+        border-color: var(--moss);
+        background: rgba(143, 197, 156, 0.12);
+        color: var(--moss);
+      }
+      .cozy-root[data-theme="dark"] .stats-score-bar { background: var(--peach-deep); }

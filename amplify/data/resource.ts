@@ -117,6 +117,9 @@ const schema = a.schema({
       recurrenceGroupId: a.string(),
       recurrenceRule: a.enum(["weekly", "monthly"]),
 
+      // Participants
+      participantIds: a.string().array(),
+
       family: a.belongsTo("Family", "familyId"),
     })
     .secondaryIndexes((index) => [
