@@ -200,7 +200,7 @@ function computeReminderAt(date, time, minutes) {
   return new Date(start.getTime() - mins * 60 * 1000).toISOString();
 }
 
-function exportToCalendar(activity) {
+async function exportToCalendar(activity) {
   const [y, mo, d] = activity.date.split("-");
   const [h, mi] = activity.time.split(":");
   const pad = (n) => String(n).padStart(2, "0");
@@ -209,6 +209,7 @@ function exportToCalendar(activity) {
   endDate.setHours(endDate.getHours() + 1);
   const dtEnd = `${endDate.getFullYear()}${pad(endDate.getMonth()+1)}${pad(endDate.getDate())}T${pad(endDate.getHours())}${pad(endDate.getMinutes())}00`;
   const stamp = new Date().toISOString().replace(/[-:.]/g, "").slice(0,15) + "Z";
+  const description = [activity.note, activity.rival ? `vs ${activity.rival}` : null].filter(Boolean).join(" · ");
   const lines = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Cozy&Casa//EN", "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
@@ -218,13 +219,27 @@ function exportToCalendar(activity) {
     `DTEND:${dtEnd}`,
     `SUMMARY:${activity.title}`,
     activity.address ? `LOCATION:${activity.address}` : null,
-    (activity.note || activity.rival) ? `DESCRIPTION:${activity.note || ("vs " + activity.rival)}` : null,
+    description ? `DESCRIPTION:${description}` : null,
     "END:VEVENT", "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");
-  const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+
+  const safeName = activity.title.replace(/[^a-z0-9]/gi, "_");
+  const file = new File([lines], `${safeName}.ics`, { type: "text/calendar" });
+
+  // iOS Safari / PWA: Web Share API triggers native share sheet → "Add to Calendar"
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: activity.title });
+      return;
+    } catch (e) {
+      if (e.name === "AbortError") return; // user cancelled — don't fall through
+    }
+  }
+
+  // Desktop fallback: trigger file download
+  const url = URL.createObjectURL(new Blob([lines], { type: "text/calendar" }));
   const el = document.createElement("a");
-  el.href = url; el.download = `${activity.title.replace(/[^a-z0-9]/gi, "_")}.ics`;
+  el.href = url; el.download = `${safeName}.ics`;
   document.body.appendChild(el); el.click();
   document.body.removeChild(el); URL.revokeObjectURL(url);
 }
