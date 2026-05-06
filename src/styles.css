@@ -1606,3 +1606,79 @@
         border-color: var(--line);
       }
       .cozy-root[data-theme="dark"] .code-copy { color: var(--paper); opacity: 0.7; }
+
+      /* ─── Sprint 3: Offline banner ─── */
+      .offline-banner {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--butter);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        padding: 8px 16px;
+        border-bottom: 2px solid var(--peach-deep);
+        margin: 0 -16px;
+      }
+
+      /* ─── Sprint 3: Pending message bubble ─── */
+      .bubble-pending {
+        opacity: 0.55;
+      }
+      .bubble-pending .b-time {
+        font-style: italic;
+      }
+
+      /* ─── Sprint 3: Notification preference toggles ─── */
+      .notif-pref-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .notif-pref-row:last-child { border-bottom: none; }
+      .notif-pref-label {
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 26px;
+        flex-shrink: 0;
+      }
+      .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: var(--line);
+        border-radius: 26px;
+        transition: background 0.2s;
+      }
+      .toggle-slider::before {
+        content: "";
+        position: absolute;
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      }
+      .toggle-switch input:checked + .toggle-slider { background: var(--moss); }
+      .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+      /* ─── Sprint 3: Dark mode overrides ─── */
+      .cozy-root[data-theme="dark"] .offline-banner {
+        background: var(--butter);
+        color: var(--ink);
+        border-color: var(--peach-deep);
+      }
+      .cozy-root[data-theme="dark"] .toggle-slider { background: var(--paper-2); }
+      .cozy-root[data-theme="dark"] .toggle-switch input:checked + .toggle-slider { background: var(--moss); }

@@ -234,6 +234,14 @@ export const translations = {
     "notif.enabled":  "notificaciones activadas en este dispositivo.",
     "notif.denied":   "las notificaciones están bloqueadas. habilitálas en la configuración de tu navegador.",
     "notif.unsupported": "tu navegador no soporta notificaciones.",
+    "notif.prefs.title":    "qué notificaciones recibir",
+    "notif.pref.reminders": "recordatorios de actividades",
+    "notif.pref.chat":      "mensajes del chat",
+
+    // Offline
+    "offline.banner":       "sin conexión · los cambios se guardarán al reconectar",
+    "offline.msg.pending":  "pendiente",
+    "load.queued":          "sin conexión — la actividad se publicará al reconectar",
 
     // Language
     "lang.es": "ES",
@@ -475,6 +483,14 @@ export const translations = {
     "notif.enabled":  "notifications enabled on this device.",
     "notif.denied":   "notifications are blocked. enable them in your browser settings.",
     "notif.unsupported": "your browser doesn't support notifications.",
+    "notif.prefs.title":    "notification preferences",
+    "notif.pref.reminders": "activity reminders",
+    "notif.pref.chat":      "chat messages",
+
+    // Offline
+    "offline.banner":       "offline · changes will sync when reconnected",
+    "offline.msg.pending":  "pending",
+    "load.queued":          "offline — activity will sync when reconnected",
 
     // Language
     "lang.es": "ES",

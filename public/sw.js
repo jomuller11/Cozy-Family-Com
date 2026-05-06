@@ -27,6 +27,7 @@ async function appendNotifHistory(title, body) {
 
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
+  const type = data.type || "reminder";
   const title = data.title || "Cozy&Casa";
   const body = data.body || "";
   const options = {
@@ -37,10 +38,15 @@ self.addEventListener("push", (event) => {
     vibrate: [100, 50, 100],
   };
   event.waitUntil(
-    Promise.all([
-      self.registration.showNotification(title, options),
-      appendNotifHistory(title, body),
-    ])
+    caches.open("notif-prefs-v1").then(async (prefsCache) => {
+      const resp = await prefsCache.match("/notif-prefs");
+      const prefs = resp ? await resp.json() : { reminders: true, chat: true };
+      if (prefs[type] === false) return;
+      await Promise.all([
+        self.registration.showNotification(title, options),
+        appendNotifHistory(title, body),
+      ]);
+    })
   );
 });
 

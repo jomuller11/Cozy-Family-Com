@@ -34,7 +34,7 @@ export const handler: AppSyncResolverHandler<Args, boolean> = async (event) => {
     }),
   );
 
-  const payload = JSON.stringify({ title, body });
+  const payload = JSON.stringify({ title, body, type: "chat" });
 
   await Promise.allSettled(
     Items.map(async (sub) => {

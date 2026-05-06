@@ -51,6 +51,7 @@ export const handler: ScheduledHandler = async () => {
       const payload = JSON.stringify({
         title: `⏰ ${title}`,
         body: `Empieza en ${timeEs} · Starts in ${timeEn}`,
+        type: "reminder",
       });
 
       await Promise.allSettled(

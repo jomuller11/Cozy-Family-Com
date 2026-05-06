@@ -8,6 +8,7 @@ import {
 } from "aws-amplify/auth";
 import * as db from "./lib/data";
 import { t as i18nT } from "./lib/i18n";
+import * as offlineQueue from "./lib/offlineQueue";
 
 // ─────────────────────────────────────────────────────────────
 // APP CONTEXT — evita definir componentes dentro de App(),
@@ -15,6 +16,31 @@ import { t as i18nT } from "./lib/i18n";
 // ─────────────────────────────────────────────────────────────
 const AppCtx = createContext(null);
 const useApp = () => useContext(AppCtx);
+
+function useOnlineStatus() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  return online;
+}
+
+async function saveNotifPrefs(prefs) {
+  try {
+    localStorage.setItem("cozy-notif-prefs", JSON.stringify(prefs));
+    const cache = await caches.open("notif-prefs-v1");
+    await cache.put("/notif-prefs", new Response(JSON.stringify(prefs), { headers: { "Content-Type": "application/json" } }));
+  } catch {}
+}
+
+function loadNotifPrefs() {
+  try { return JSON.parse(localStorage.getItem("cozy-notif-prefs") || "{}"); }
+  catch { return {}; }
+}
 
 // ─────────────────────────────────────────────────────────────
 // MASCOT SVGs
@@ -220,6 +246,12 @@ const LangToggle = () => {
       {lang === "es" ? "EN" : "ES"}
     </button>
   );
+};
+
+const OfflineBanner = () => {
+  const { online, t } = useApp();
+  if (online) return null;
+  return <div className="offline-banner">{t("offline.banner")}</div>;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -798,7 +830,7 @@ const AgendaView = () => {
 // CHAT
 // ─────────────────────────────────────────────────────────────
 const ChatView = () => {
-  const { familyData, user, messages, family, t } = useApp();
+  const { familyData, user, messages, family, t, online, pendingMsgs, setPendingMsgs } = useApp();
   const [text, setText] = useState("");
   const [actionMsgId, setActionMsgId] = useState(null);
   const [editingMsgId, setEditingMsgId] = useState(null);
@@ -818,6 +850,26 @@ const ChatView = () => {
     if (!text.trim() || !familyData?.id) return;
     const msg = text.trim();
     setText("");
+    if (!online) {
+      const qid = offlineQueue.enqueue("sendMessage", {
+        familyId: familyData.id,
+        authorId: user.userId,
+        authorName: user.name,
+        authorMascot: user.mascot,
+        text: msg,
+      });
+      setPendingMsgs((prev) => [...prev, {
+        id: `pending-${qid}`,
+        _qid: qid,
+        text: msg,
+        authorId: user.userId,
+        who: user.name,
+        mascot: user.mascot,
+        t: Date.now(),
+        pending: true,
+      }]);
+      return;
+    }
     await db.sendMessage({
       familyId: familyData.id,
       authorId: user.userId,
@@ -870,16 +922,18 @@ const ChatView = () => {
         </div>
       </header>
       <div className="chat-stream">
-        {messages.map((m) => {
+        {[...messages, ...pendingMsgs.filter((pm) => !messages.some((m) => m._qid === pm._qid))]
+          .sort((a, b) => (a.t || 0) - (b.t || 0))
+          .map((m) => {
           const mine = m.authorId === user?.userId;
           const isEditing = editingMsgId === m.id;
-          const showActions = mine && actionMsgId === m.id && !isEditing;
+          const showActions = mine && actionMsgId === m.id && !isEditing && !m.pending;
           const loading = msgLoading === m.id;
           return (
             <div key={m.id} className={`bubble-row ${mine ? "mine" : ""}`}>
               {!mine && <Mascot name={m.mascot || "nubi"} size={36} />}
               <div
-                className={`bubble ${mine ? "b-mine" : ""}`}
+                className={`bubble ${mine ? "b-mine" : ""} ${m.pending ? "bubble-pending" : ""}`}
                 onTouchStart={() => mine && !isEditing && startPress(m.id)}
                 onTouchEnd={cancelPress}
                 onTouchMove={cancelPress}
@@ -903,7 +957,9 @@ const ChatView = () => {
                     <button className="bact-cancel" onClick={() => setEditingMsgId(null)}>{t("cancel")}</button>
                   </div>
                 ) : (
-                  <div className="b-time">{new Date(m.t).toLocaleTimeString(t("date.locale"), { hour: "2-digit", minute: "2-digit" })}</div>
+                  <div className="b-time">
+                    {m.pending ? t("offline.msg.pending") : new Date(m.t).toLocaleTimeString(t("date.locale"), { hour: "2-digit", minute: "2-digit" })}
+                  </div>
                 )}
               </div>
               {showActions && (
@@ -955,15 +1011,16 @@ const Field = ({ label, children, error }) => (
 );
 
 const LoadView = () => {
-  const { familyData, user, setTab, t } = useApp();
+  const { familyData, user, setTab, t, online } = useApp();
   const [type, setType] = useState(null);
   const [form, setForm] = useState({});
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [queuedOffline, setQueuedOffline] = useState(false);
 
-  const reset = () => { setType(null); setForm({}); setDone(false); setErr(""); setFieldErrors({}); };
+  const reset = () => { setType(null); setForm({}); setDone(false); setErr(""); setFieldErrors({}); setQueuedOffline(false); };
   const upd = (k, v) => { setForm((prev) => ({ ...prev, [k]: v })); setFieldErrors((prev) => ({ ...prev, [k]: false })); };
 
   const save = async () => {
@@ -1019,6 +1076,12 @@ const LoadView = () => {
           ...(occReminderAt && { reminderAt: occReminderAt, reminderMinutes: Number(form.reminder ?? "15"), reminderSent: false }),
         };
       });
+      if (!online) {
+        occurrences.forEach((occ) => offlineQueue.enqueue("createActivity", occ));
+        setQueuedOffline(true);
+        setDone(true);
+        return;
+      }
       await Promise.all(occurrences.map((occ) => db.createActivity(occ)));
       db.sendPushNotification({
         familyId: familyData.id,
@@ -1040,7 +1103,7 @@ const LoadView = () => {
         <div className="success-card">
           <div className="floaty"><Mascot name="momo" size={120} /></div>
           <h2 className="display-h2">{t("load.success.title")}</h2>
-          <p>{t("load.success.msg")}</p>
+          <p>{queuedOffline ? t("load.queued") : t("load.success.msg")}</p>
           <button className="primary-btn" onClick={reset}>{t("load.another")}</button>
           <button className="ghost-btn" onClick={() => { reset(); setTab("agenda"); }}>{t("load.goto.agenda")}</button>
         </div>
@@ -1675,6 +1738,15 @@ const ProfileView = () => {
     typeof Notification !== "undefined" ? Notification.permission : "unsupported"
   );
   const [notifLoading, setNotifLoading] = useState(false);
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    const p = loadNotifPrefs();
+    return { reminders: p.reminders !== false, chat: p.chat !== false };
+  });
+  const togglePref = async (key) => {
+    const next = { ...notifPrefs, [key]: !notifPrefs[key] };
+    setNotifPrefs(next);
+    await saveNotifPrefs(next);
+  };
 
   const save = async () => {
     setProfileErr("");
@@ -1910,6 +1982,24 @@ const ProfileView = () => {
         </div>
       )}
 
+      {notifPermission === "granted" && (
+        <div className="form-card">
+          <h2 className="block-title">{t("notif.prefs.title")}</h2>
+          {[
+            { key: "reminders", label: t("notif.pref.reminders") },
+            { key: "chat",      label: t("notif.pref.chat") },
+          ].map(({ key, label }) => (
+            <div key={key} className="notif-pref-row">
+              <span className="notif-pref-label">{label}</span>
+              <label className="toggle-switch">
+                <input type="checkbox" checked={notifPrefs[key]} onChange={() => togglePref(key)} />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="notif-history-section">
         <button className="notif-history-toggle" onClick={() => setShowNotifHistory((v) => !v)}>
           {t("profile.notif.history")} {showNotifHistory ? "▲" : "▼"}
@@ -1991,6 +2081,21 @@ export default function App() {
   const [family, setFamily] = useState([]);
   const [invites, setInvites] = useState([]);
   const [theme, setTheme] = useState(() => localStorage.getItem("cozy-theme") || "light");
+  const online = useOnlineStatus();
+  const [pendingMsgs, setPendingMsgs] = useState(() =>
+    offlineQueue.getQueue()
+      .filter((op) => op.type === "sendMessage")
+      .map((op) => ({
+        id: `pending-${op._qid}`,
+        _qid: op._qid,
+        text: op.payload.text,
+        authorId: op.payload.authorId,
+        who: op.payload.authorName,
+        mascot: op.payload.authorMascot,
+        t: op._ts || Date.now(),
+        pending: true,
+      }))
+  );
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -2099,6 +2204,23 @@ export default function App() {
     return () => { subA.unsubscribe(); subM.unsubscribe(); };
   }, [familyData?.id]);
 
+  // Flush offline queue when back online
+  useEffect(() => {
+    if (!online || !familyData?.id) return;
+    const queue = offlineQueue.getQueue();
+    if (!queue.length) return;
+    (async () => {
+      for (const op of [...queue]) {
+        try {
+          if (op.type === "sendMessage") await db.sendMessage(op.payload);
+          else if (op.type === "createActivity") await db.createActivity(op.payload);
+          offlineQueue.dequeue(op._qid);
+          setPendingMsgs((prev) => prev.filter((m) => m._qid !== op._qid));
+        } catch (e) { console.error("Queue flush error:", e); }
+      }
+    })();
+  }, [online, familyData?.id]);
+
   async function loadMembers(familyId, myUserId, cancelled = false) {
     const mems = await db.listFamilyMembers(familyId);
     const profiles = await Promise.all(mems.map((m) => db.getMyProfile(m.userId)));
@@ -2136,6 +2258,7 @@ export default function App() {
     stage, setStage,
     isAdmin, familyMascot,
     refreshSession, loadMembers,
+    online, pendingMsgs, setPendingMsgs,
   };
 
   if (loading || stage === "loading") {
@@ -2159,6 +2282,7 @@ export default function App() {
         {stage === "app"        && (
           <>
             <main className="screen">
+              <OfflineBanner />
               {editingActivity ? (
                 <EditActivityView />
               ) : (
