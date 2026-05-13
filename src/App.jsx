@@ -2526,7 +2526,7 @@ export default function App() {
                 </>
               )}
             </main>
-            {tab !== "cargar" && !editingActivity && <FAB />}
+            {tab !== "cargar" && tab !== "chat" && !editingActivity && <FAB />}
             <Nav />
           </>
         )}
