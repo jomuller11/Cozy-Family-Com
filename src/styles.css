@@ -470,6 +470,8 @@
       .act-examen::before { background: var(--lavender); }
       .act-voley::before { background: var(--peach-deep); }
       .act-gimnasia::before { background: var(--berry); }
+      .act-reunion::before { background: var(--sky); }
+      .act-tarea::before { background: var(--butter); }
 
       .act-mascot {
         flex-shrink: 0;
@@ -634,6 +636,8 @@
       .week-examen { background: var(--lavender); color: var(--ink); }
       .week-voley  { background: var(--peach); color: var(--ink); }
       .week-gimnasia { background: var(--berry); color: #fff; }
+      .week-reunion { background: var(--sky); color: var(--ink); }
+      .week-tarea   { background: var(--butter); color: var(--ink); }
 
       /* week */
       .week-stack { display: flex; flex-direction: column; gap: 12px; }
@@ -685,6 +689,8 @@
       .dot-examen { background: var(--lavender); }
       .dot-voley { background: var(--peach-deep); }
       .dot-gimnasia { background: var(--berry); }
+      .dot-reunion { background: var(--sky); }
+      .dot-tarea { background: var(--butter); }
 
       /* recurrence bar in edit view */
       .recurrence-bar { display: flex; flex-direction: column; gap: 8px; margin: 0 16px 12px; }
@@ -806,6 +812,8 @@
       .type-examen { background: linear-gradient(135deg, color-mix(in srgb, var(--lavender) 35%, var(--cream)), var(--cream)); }
       .type-voley { background: linear-gradient(135deg, color-mix(in srgb, var(--peach) 35%, var(--cream)), var(--cream)); }
       .type-gimnasia { background: linear-gradient(135deg, color-mix(in srgb, var(--berry) 30%, var(--cream)), var(--cream)); }
+      .type-reunion { background: linear-gradient(135deg, color-mix(in srgb, var(--sky) 35%, var(--cream)), var(--cream)); }
+      .type-tarea { background: linear-gradient(135deg, color-mix(in srgb, var(--butter) 35%, var(--cream)), var(--cream)); }
 
       .form-head {
         display: flex; flex-direction: column;

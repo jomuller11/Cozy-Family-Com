@@ -572,7 +572,7 @@ const NoFamilyView = () => {
 // ─────────────────────────────────────────────────────────────
 const ActivityRow = ({ a }) => {
   const { setEditingActivity, t } = useApp();
-  const icons = { examen: "📝", voley: "🏐", gimnasia: "🤸" };
+  const icons = { examen: "📝", voley: "🏐", gimnasia: "🤸", reunion: "🗓️", tarea: "📋" };
   return (
     <div className={`act-row act-${a.type} act-row-clickable`} onClick={() => setEditingActivity(a)}>
       <div className="act-mascot"><Mascot name={a.mascot || "nubi"} size={44} /></div>
@@ -590,7 +590,8 @@ const ActivityRow = ({ a }) => {
         </div>
         {a.address && <div className="act-addr">📍 {a.address}</div>}
         {a.note && <div className="act-note">{a.note}</div>}
-        {a.result && <div className="act-res">🏆 {a.result}</div>}
+        {a.result && a.type !== "tarea" && <div className="act-res">🏆 {a.result}</div>}
+        {a.result && a.type === "tarea" && <div className="act-note">· {a.result}</div>}
       </div>
     </div>
   );
@@ -1089,6 +1090,8 @@ const StatsView = () => {
   const voley   = past("voley");
   const gim     = past("gimnasia");
   const examen  = past("examen");
+  const reunion = past("reunion");
+  const tarea   = past("tarea");
 
   const avgScore = (key) => {
     const vals = gim.map((a) => parseFloat(a[key])).filter((v) => !isNaN(v));
@@ -1101,7 +1104,7 @@ const StatsView = () => {
     { key: "scoreSalto",     label: t("form.score.salto") },
   ];
   const hasGimScores = scoreKeys.some(({ key }) => avgScore(key) !== null);
-  const empty = voley.length === 0 && gim.length === 0 && examen.length === 0;
+  const empty = voley.length === 0 && gim.length === 0 && examen.length === 0 && reunion.length === 0 && tarea.length === 0;
 
   return (
     <div className="page">
@@ -1197,6 +1200,42 @@ const StatsView = () => {
           </div>
         </div>
       )}
+
+      {reunion.length > 0 && (
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">🗓️ {t("stats.reunion.title")}</h2>
+            <span className="count-pill">{t("stats.reunion.count", { n: reunion.length })}</span>
+          </div>
+          <div className="stats-list">
+            {reunion.slice(0, 8).map((a) => (
+              <div key={a.id} className="stats-row">
+                <span className="stats-date">{new Date(a.date + "T00:00:00").toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
+                <span className="stats-rival">{a.place || a.title}</span>
+                {a.note && <span className="stats-result">{a.note}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tarea.length > 0 && (
+        <div className="form-card">
+          <div className="block-head">
+            <h2 className="block-title">📋 {t("stats.tarea.title")}</h2>
+            <span className="count-pill">{t("stats.tarea.count", { n: tarea.length })}</span>
+          </div>
+          <div className="stats-list">
+            {tarea.slice(0, 8).map((a) => (
+              <div key={a.id} className="stats-row">
+                <span className="stats-date">{new Date(a.date + "T00:00:00").toLocaleDateString(t("date.locale"), { day: "numeric", month: "short" })}</span>
+                <span className="stats-rival">{a.title}</span>
+                {a.result && <span className="stats-result">{a.result}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1244,7 +1283,9 @@ const LoadView = () => {
       const title = form.title?.trim() || (
         type === "examen" ? (form.subject || t("load.type.examen"))
         : type === "voley" ? `${t("load.type.voley")} vs ${form.rival || "?"}`
-        : t("load.type.gimnasia")
+        : type === "gimnasia" ? t("load.type.gimnasia")
+        : type === "reunion" ? t("load.type.reunion")
+        : t("load.type.tarea")
       );
       const actDate = form.date || localIso(new Date());
       const actTime = form.time || "09:00";
@@ -1340,6 +1381,16 @@ const LoadView = () => {
             <div className="type-name">{t("load.type.gimnasia")}</div>
             <div className="type-mascot"><Mascot name="momo" size={56} /></div>
           </button>
+          <button className="type-card type-reunion" onClick={() => setType("reunion")}>
+            <div className="type-icon">🗓️</div>
+            <div className="type-name">{t("load.type.reunion")}</div>
+            <div className="type-mascot"><Mascot name="nubi" size={56} /></div>
+          </button>
+          <button className="type-card type-tarea" onClick={() => setType("tarea")}>
+            <div className="type-icon">📋</div>
+            <div className="type-name">{t("load.type.tarea")}</div>
+            <div className="type-mascot"><Mascot name="luma" size={56} /></div>
+          </button>
         </div>
       </div>
     );
@@ -1384,6 +1435,7 @@ const LoadView = () => {
               <Field label={t("form.time")} error={fieldErrors.time}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <Field label={t("form.result")}><input className="cozy-input" value={form.result || ""} onChange={(e) => upd("result", e.target.value)} placeholder={t("form.result.ph")} /></Field>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
         )}
 
@@ -1403,6 +1455,36 @@ const LoadView = () => {
                 </div>
               ))}
             </div>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
+          </>
+        )}
+
+        {type === "reunion" && (
+          <>
+            <Field label={t("form.place")}><input className="cozy-input" value={form.place || ""} onChange={(e) => upd("place", e.target.value)} placeholder={t("form.place.ph")} /></Field>
+            <Field label={t("form.address")}><input className="cozy-input" value={form.address || ""} onChange={(e) => upd("address", e.target.value)} placeholder={t("form.address.ph")} /></Field>
+            <div className="row-2">
+              <Field label={t("form.date")} error={fieldErrors.date}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")} error={fieldErrors.time}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
+          </>
+        )}
+
+        {type === "tarea" && (
+          <>
+            <div className="row-2">
+              <Field label={t("form.date")} error={fieldErrors.date}><input className="cozy-input" type="date" value={form.date || ""} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")} error={fieldErrors.time}><input className="cozy-input" type="time" value={form.time || ""} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <Field label={t("form.task.status")}>
+              <select className="cozy-input" value={form.result || "pendiente"} onChange={(e) => upd("result", e.target.value)}>
+                <option value="pendiente">{t("form.task.pending")}</option>
+                <option value="en_progreso">{t("form.task.inprogress")}</option>
+                <option value="completada">{t("form.task.done")}</option>
+              </select>
+            </Field>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note || ""} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
         )}
 
@@ -1598,6 +1680,7 @@ const EditActivityView = () => {
               <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
             </div>
             <Field label={t("form.result")}><input className="cozy-input" value={form.result} onChange={(e) => upd("result", e.target.value)} placeholder={t("form.result.ph")} /></Field>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
         )}
 
@@ -1617,6 +1700,36 @@ const EditActivityView = () => {
                 </div>
               ))}
             </div>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
+          </>
+        )}
+
+        {a.type === "reunion" && (
+          <>
+            <Field label={t("form.place")}><input className="cozy-input" value={form.place} onChange={(e) => upd("place", e.target.value)} placeholder={t("form.place.ph")} /></Field>
+            <Field label={t("form.address")}><input className="cozy-input" value={form.address} onChange={(e) => upd("address", e.target.value)} placeholder={t("form.address.ph")} /></Field>
+            <div className="row-2">
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
+          </>
+        )}
+
+        {a.type === "tarea" && (
+          <>
+            <div className="row-2">
+              <Field label={t("form.date")}><input className="cozy-input" type="date" value={form.date} onChange={(e) => upd("date", e.target.value)} /></Field>
+              <Field label={t("form.time")}><input className="cozy-input" type="time" value={form.time} onChange={(e) => upd("time", e.target.value)} /></Field>
+            </div>
+            <Field label={t("form.task.status")}>
+              <select className="cozy-input" value={form.result || "pendiente"} onChange={(e) => upd("result", e.target.value)}>
+                <option value="pendiente">{t("form.task.pending")}</option>
+                <option value="en_progreso">{t("form.task.inprogress")}</option>
+                <option value="completada">{t("form.task.done")}</option>
+              </select>
+            </Field>
+            <Field label={t("form.note")}><textarea className="cozy-input area" value={form.note} onChange={(e) => upd("note", e.target.value)} placeholder={t("form.note.ph")} /></Field>
           </>
         )}
 

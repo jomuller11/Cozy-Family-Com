@@ -83,7 +83,7 @@ const schema = a.schema({
   Activity: a
     .model({
       familyId: a.id().required(),
-      type: a.enum(["examen", "voley", "gimnasia"]),
+      type: a.enum(["examen", "voley", "gimnasia", "reunion", "tarea"]),
       title: a.string().required(),
       date: a.date().required(),
       time: a.string().required(), // "HH:MM"
